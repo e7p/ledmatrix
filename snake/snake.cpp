@@ -2,10 +2,8 @@
  * Code by Endres, based on code by wizard23 */
 #define F_CPU 8000000UL
 #include <avr/io.h>
+#include <avr/interrupt.h>
 #include <util/delay.h>
-
-void screen_off();
-void screen_on();
 
 #define CLEAR_PANEL_PIN PB4
 // atmega pin #5 <-> panel pin #10
@@ -30,12 +28,16 @@ void screen_on();
 uint8_t panelData[PANELDATA_SIZE];
 
 uint8_t snakePos[PANELS*8*9][2];
+uint8_t foodPos[2];
 uint8_t snakeLength;
-
 uint8_t snakeDir;
 
-void setPixel(int x, int y, int value)
-{
+uint8_t buttonValue;
+uint8_t buttonStatus;
+
+uint8_t gameTick;
+
+void setPixel(uint8_t x, uint8_t y, uint8_t value) {
   uint8_t index = (y+1) + x*10; // y+1 because 1st bit controls blinking
   uint8_t byteNum = index >> 3; // division by 8
   uint8_t bitNum = index & 0x7; // remainder at division by 8
@@ -46,12 +48,32 @@ void setPixel(int x, int y, int value)
     panelData[byteNum] &= ~(1 << bitNum);
 }
 
-void shiftPixelData()
-{
+uint8_t getPixel(int x, int y) {
+  uint8_t index = (y+1) + x*10; // See above
+  uint8_t byteNum = index >> 3;
+  uint8_t bitNum = index & 0x7;
+  return panelData[index >> 3] & (1 << index & 0x7);
+}
+
+void togglePixel(int x, int y) {
+  uint8_t index = (y+1) + x*10; // See above
+  uint8_t byteNum = index >> 3;
+  uint8_t bitNum = index & 0x7;
+  panelData[byteNum] ^= 1 << bitNum;
+}
+
+void screen_off() {
+  PORTB &= ~(1<<CLEAR_PANEL_PIN);
+}
+
+void screen_on() {
+  PORTB |= (1<<CLEAR_PANEL_PIN);
+}
+
+void shiftPixelData() {
   screen_off(); // needed?
   
-  for (int i = 0; i < PANELDATA_SIZE; i++)
-  {
+  for(int i = 0; i < PANELDATA_SIZE; i++) {
     uint8_t value = panelData[i];
     
     SPDR = panelData[i];
@@ -76,35 +98,35 @@ void setup() {
   SPCR |= _BV(DORD);
   SPCR = (SPCR & ~SPI_MODE_MASK) | SPI_MODE0;
   SPCR = (SPCR & ~SPI_CLOCK_MASK) | (SPI_CLOCK_DIV128 & SPI_CLOCK_MASK);
-  SPSR = (SPSR & ~SPI_2XCLOCK_MASK) | ((SPI_CLOCK_DIV128 >> 2) & SPI_2XCLOCK_MASK);
+  SPSR = (SPSR & ~SPI_2XCLOCK_MASK) |
+    ((SPI_CLOCK_DIV128 >> 2) & SPI_2XCLOCK_MASK);
+
+  // Initialize Timers
+  // 8-bit Timer 0 at 8.16ms
+  TCCR0B |= (1<<CS02); // Prescaler 256
+  // 16-bit Timer 1 at 524.28ms
+  TCCR1B = (1<<CS00) | (1<<CS01); // Prescaler 64
+
+  // Interrupts
+  TIMSK0 |= (1<<TOIE0);
+  TIMSK1 |= (1<<TOIE1);
+  sei();
 
   // Initialize Snake
-  snakeLength = 10;
+  snakeLength = 5;
   snakeDir = DIR_RIGHT;
 
   DDRA &= ~((1<<LEFT_PIN)|(1<<RIGHT_PIN));
   PORTA |= (1<<LEFT_PIN)|(1<<RIGHT_PIN);
 
-  snakePos[1][0] = 1;
-  snakePos[2][0] = 2;
-
-  for (int x = 0; x < 8*PANELS; x++)
-  {
-    for (int y = 0; y < 9; y++)
-    {
-      setPixel(x, y, (y < 1 && x < snakeLength));
+  for(int x = 0; x < 8*PANELS; x++) {
+    for(int y = 0; y < 9; y++) {
+      if(y < 1 && x < snakeLength) {
+        snakePos[x][0] = x;
+        setPixel(x, y, 1);
+      }
     }
   }
-}
-
-void screen_off()
-{
-  PORTB &= ~(1<<CLEAR_PANEL_PIN);
-}
-
-void screen_on()
-{
-  PORTB |= (1<<CLEAR_PANEL_PIN);
 }
 
 void shiftSnake() {
@@ -122,35 +144,66 @@ void snakeRight() {
   snakeDir = (snakeDir + 3) % 4;
 }
 
-void loop ()
-{
-  if(PINA & (1<<LEFT_PIN)) snakeLeft();
-  if(PINA & (1<<RIGHT_PIN)) snakeRight();
+void loop() {
+  setPixel(0, 6, PINA & (1<<LEFT_PIN));
+  setPixel(1, 6, PINA & (1<<RIGHT_PIN));
+  setPixel(0, 7, buttonStatus & (1<<LEFT_PIN));
+  setPixel(1, 7, buttonStatus & (1<<RIGHT_PIN));
+  setPixel(0, 8, buttonValue & (1<<LEFT_PIN));
+  setPixel(1, 8, buttonValue & (1<<RIGHT_PIN));
+  if(gameTick > 0) {
+    if(buttonStatus & buttonValue & (1<<LEFT_PIN)) snakeLeft();
+    if(buttonStatus & buttonValue & (1<<RIGHT_PIN)) snakeRight();
+    buttonStatus &= ~((1<<LEFT_PIN) | (1<<RIGHT_PIN));
+    buttonValue &= ~((1<<LEFT_PIN) | (1<<RIGHT_PIN));
 
-  snakePos[snakeLength][0] = snakePos[snakeLength-1][0];
-  snakePos[snakeLength][1] = snakePos[snakeLength-1][1];
-  if(snakeDir == DIR_LEFT) {
-    snakePos[snakeLength][0] = snakePos[snakeLength-1][0] - 1;
-    if(snakePos[snakeLength][0] == 255) snakePos[snakeLength][0] = 7;
-  } else if(snakeDir == DIR_RIGHT) {
-    snakePos[snakeLength][0] = snakePos[snakeLength-1][0] + 1;
-    if(snakePos[snakeLength][0] >= 8) snakePos[snakeLength][0] = 0;
-  } else if(snakeDir == DIR_TOP) {
-    snakePos[snakeLength][1] = snakePos[snakeLength-1][1] - 1;
-    if(snakePos[snakeLength][1] == 255) snakePos[snakeLength][1] = 8;
-  } else { // BOTTOM
-    snakePos[snakeLength][1] = snakePos[snakeLength-1][1] + 1;
-    if(snakePos[snakeLength][1] >= 9) snakePos[snakeLength][1] = 0;
+    snakePos[snakeLength][0] = snakePos[snakeLength-1][0];
+    snakePos[snakeLength][1] = snakePos[snakeLength-1][1];
+    if(snakeDir == DIR_LEFT) {
+      snakePos[snakeLength][0] = snakePos[snakeLength-1][0] - 1;
+      if(snakePos[snakeLength][0] == 255) snakePos[snakeLength][0] = 7;
+    } else if(snakeDir == DIR_RIGHT) {
+      snakePos[snakeLength][0] = snakePos[snakeLength-1][0] + 1;
+      if(snakePos[snakeLength][0] >= 8) snakePos[snakeLength][0] = 0;
+    } else if(snakeDir == DIR_TOP) {
+      snakePos[snakeLength][1] = snakePos[snakeLength-1][1] - 1;
+      if(snakePos[snakeLength][1] == 255) snakePos[snakeLength][1] = 8;
+    } else { // BOTTOM
+      snakePos[snakeLength][1] = snakePos[snakeLength-1][1] + 1;
+      if(snakePos[snakeLength][1] >= 9) snakePos[snakeLength][1] = 0;
+    }
+    
+    //if(snakePos[snakeLength][0] == foodPos[0] &&
+    //  snakePos[snakeLength][1] == foodPos[1]) snakeLength++;
+    /*else if(getPixel(snakePos[snakeLength][0], snakePos[snakeLength][1])) {
+      // Game over
+      setPixel(0, 0, 1);
+    } else {*/
+      setPixel(snakePos[0][0], snakePos[0][1], 0);
+      setPixel(snakePos[snakeLength][0], snakePos[snakeLength][1], 1);
+      shiftSnake();
+    //}
+
+    gameTick--;
   }
-  setPixel(snakePos[snakeLength][0], snakePos[snakeLength][1], 1);
-  setPixel(snakePos[0][0], snakePos[0][1], 0);
-  shiftSnake();
+  _delay_ms(10);
   shiftPixelData();
-  _delay_ms(500);
-  return;
+}
+
+ISR(TIMER0_OVF_vect) {
+  // Button timer (including simple debounce)
+  buttonStatus |= PINA & ~buttonValue | buttonStatus;
+  buttonValue = PINA | buttonValue & buttonStatus;
+  togglePixel(2, 6);
+}
+
+ISR(TIMER1_OVF_vect) {
+  // Game timer
+  gameTick++;
+  togglePixel(2, 7);
 }
 
 int main() {
-   setup();
-   while(1) loop();
+  setup();
+  while(1) loop();
 }
