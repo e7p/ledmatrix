@@ -37,6 +37,14 @@ uint8_t buttonStatus;
 
 uint8_t gameTick;
 
+uint16_t random;
+
+void clear() {
+  for(uint8_t i = 0; i < PANELDATA_SIZE; i++) {
+    panelData[i] = 0;
+  }
+}
+
 void setPixel(uint8_t x, uint8_t y, uint8_t value) {
   uint8_t index = (y+1) + x*10; // y+1 because 1st bit controls blinking
   uint8_t byteNum = index >> 3; // division by 8
@@ -68,6 +76,22 @@ void screen_off() {
 
 void screen_on() {
   PORTB |= (1<<CLEAR_PANEL_PIN);
+}
+
+bool inSnake(uint8_t x, uint8_t y) {
+  for(uint8_t i = 0; i < snakeLength; i++) {
+    if(snakePos[i][0] == x && snakePos[i][1] == y)
+      return true;
+  }
+  return false;
+}
+
+void newFood() {
+  do {
+    foodPos[0] = random % 8;
+    foodPos[1] = random % 9;
+    random++;
+  } while(inSnake(foodPos[0], foodPos[1]));
 }
 
 void shiftPixelData() {
@@ -127,6 +151,8 @@ void setup() {
       }
     }
   }
+  
+  newFood();
 }
 
 void shiftSnake() {
@@ -137,24 +163,17 @@ void shiftSnake() {
 }
 
 void snakeLeft() {
-  snakeDir = (snakeDir + 1) % 4;
-}
-
-void snakeRight() {
   snakeDir = (snakeDir + 3) % 4;
 }
 
+void snakeRight() {
+  snakeDir = (snakeDir + 1) % 4;
+}
+
 void loop() {
-  setPixel(0, 6, PINA & (1<<LEFT_PIN));
-  setPixel(1, 6, PINA & (1<<RIGHT_PIN));
-  setPixel(0, 7, buttonStatus & (1<<LEFT_PIN));
-  setPixel(1, 7, buttonStatus & (1<<RIGHT_PIN));
-  setPixel(0, 8, buttonValue & (1<<LEFT_PIN));
-  setPixel(1, 8, buttonValue & (1<<RIGHT_PIN));
   if(gameTick > 0) {
-    if(buttonStatus & buttonValue & (1<<LEFT_PIN)) snakeLeft();
-    if(buttonStatus & buttonValue & (1<<RIGHT_PIN)) snakeRight();
-    buttonStatus &= ~((1<<LEFT_PIN) | (1<<RIGHT_PIN));
+    if(buttonValue & (1<<LEFT_PIN)) snakeLeft();
+    if(buttonValue & (1<<RIGHT_PIN)) snakeRight();
     buttonValue &= ~((1<<LEFT_PIN) | (1<<RIGHT_PIN));
 
     snakePos[snakeLength][0] = snakePos[snakeLength-1][0];
@@ -173,34 +192,40 @@ void loop() {
       if(snakePos[snakeLength][1] >= 9) snakePos[snakeLength][1] = 0;
     }
     
-    //if(snakePos[snakeLength][0] == foodPos[0] &&
-    //  snakePos[snakeLength][1] == foodPos[1]) snakeLength++;
-    /*else if(getPixel(snakePos[snakeLength][0], snakePos[snakeLength][1])) {
+    if(snakePos[snakeLength][0] == foodPos[0] &&
+      snakePos[snakeLength][1] == foodPos[1]) {
+      snakeLength++;
+      newFood();
+    } else if(getPixel(snakePos[snakeLength][0], snakePos[snakeLength][1])) {
       // Game over
-      setPixel(0, 0, 1);
-    } else {*/
-      setPixel(snakePos[0][0], snakePos[0][1], 0);
-      setPixel(snakePos[snakeLength][0], snakePos[snakeLength][1], 1);
+      //setPixel(0, 0, 1);
+    } else {
+      //setPixel(snakePos[0][0], snakePos[0][1], 0);
+      //setPixel(snakePos[snakeLength][0], snakePos[snakeLength][1], 1);
       shiftSnake();
-    //}
+    }
+    // draw Snake
+    clear();
+    for(uint8_t i = 0; i < snakeLength; i++) {
+      setPixel(snakePos[i][0], snakePos[i][1], 1);
+    }
+    setPixel(foodPos[0], foodPos[1], 1);
+    shiftPixelData();
 
     gameTick--;
   }
-  _delay_ms(10);
-  shiftPixelData();
+  random++;
 }
 
 ISR(TIMER0_OVF_vect) {
   // Button timer (including simple debounce)
-  buttonStatus |= PINA & ~buttonValue | buttonStatus;
-  buttonValue = PINA | buttonValue & buttonStatus;
-  togglePixel(2, 6);
+  buttonValue |= PINA & ~buttonStatus | buttonValue;
+  buttonStatus = PINA | buttonStatus & buttonValue;
 }
 
 ISR(TIMER1_OVF_vect) {
   // Game timer
   gameTick++;
-  togglePixel(2, 7);
 }
 
 int main() {
