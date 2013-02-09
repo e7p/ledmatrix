@@ -39,6 +39,9 @@ uint8_t gameTick;
 
 uint16_t random;
 
+uint8_t cnt;
+uint8_t bl;
+
 void clear() {
   for(uint8_t i = 0; i < PANELDATA_SIZE; i++) {
     panelData[i] = 0;
@@ -209,10 +212,15 @@ void loop() {
     for(uint8_t i = 0; i < snakeLength; i++) {
       setPixel(snakePos[i][0], snakePos[i][1], 1);
     }
-    setPixel(foodPos[0], foodPos[1], 1);
     shiftPixelData();
-
+    
     gameTick--;
+  }
+  if(cnt == 3) {
+    setPixel(foodPos[0], foodPos[1], bl % 2);
+    bl++;
+    shiftPixelData();
+    cnt = 0;
   }
   random++;
 }
@@ -221,6 +229,7 @@ ISR(TIMER0_OVF_vect) {
   // Button timer (including simple debounce)
   buttonValue |= PINA & ~buttonStatus | buttonValue;
   buttonStatus = PINA | buttonStatus & buttonValue;
+  cnt++;
 }
 
 ISR(TIMER1_OVF_vect) {
