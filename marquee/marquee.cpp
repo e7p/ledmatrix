@@ -20,9 +20,7 @@
 uint8_t panelData[PANELDATA_SIZE];
 
 // HELLO WORLD!
-// 851110211142
-//   225 3582 7
-uint8_t msg[] = {8, 5, 12, 12, 15, 0, 23, 15, 18, 12, 4, 27};
+uint8_t msg[] = {8, 5, 12, 12, 15, 0, 23, 15, 18, 12, 4, 27, 0};
 uint8_t c = 0;
 
 void clear() {
@@ -90,17 +88,19 @@ void setup() {
 }
 
 uint8_t s = 0;
-
 void loop() {
   for(uint8_t i = 0; i < 10; i++) {
-    //panelData[i] = (font[i+s+8*msg[c+i/(8-s)]-i/5] << (2 * (i % 5)) + 2) | (font[i+s-1+8*msg[c+i/(8-s)]-i/5] >> (10 - 2 * (i % 5)) - 2);
-    panelData[i] = (font[i+s+8*msg[c]-i/5] << (2 * (i % 5)) + 2) | (font[i+s-1+8*msg[c]-i/5] >> (10 - 2 * (i % 5)) - 2);
+    panelData[i] = (font[i+s-(s+i)/9*8+8*msg[c+(s+i)/9]-i/5] << (2 * (i % 5)) + 2) |
+                   (font[i+s-(s+i)/10*8-1+8*msg[c+(s+i)/10]-i/5] >> (10 - 2 * (i % 5)) - 2);
   }
-  // first of all inc s, and if s == 8 then inc c
-  c++;
-  if(c==12) c = 0;
+  s++;
+  if(s==8) {
+    s = 0;
+    c++;
+    if(c==12) c = 0;
+  }
   shiftPixelData();
-  _delay_ms(1000);
+  _delay_ms(80);
 }
 
 int main() {
