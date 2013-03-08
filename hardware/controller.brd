@@ -2374,13 +2374,7 @@ design rules under a new name.</description>
 <contactref element="S6" pad="4"/>
 <contactref element="S5" pad="3"/>
 <contactref element="S5" pad="4"/>
-<wire x1="33.1216" y1="90.17" x2="36.7456125" y2="93.7940125" width="0.6096" layer="16"/>
-<wire x1="36.7456125" y1="93.7940125" x2="37.194625" y2="93.98" width="0.6096" layer="16" curve="-45"/>
-<wire x1="37.194625" y1="93.98" x2="46.99" y2="93.98" width="0.6096" layer="16"/>
 <wire x1="63.5" y1="72.39" x2="66.04" y2="74.93" width="0.6096" layer="16"/>
-<wire x1="46.99" y1="93.98" x2="49.3440125" y2="91.6259875" width="0.6096" layer="16"/>
-<wire x1="49.3440125" y1="91.6259875" x2="49.53" y2="91.176975" width="0.6096" layer="16" curve="-45"/>
-<wire x1="49.53" y1="91.176975" x2="49.53" y2="86.36" width="0.6096" layer="16"/>
 <wire x1="59.5040125" y1="76.3859875" x2="59.69" y2="75.936975" width="0.6096" layer="16" curve="-45"/>
 <wire x1="59.69" y1="75.936975" x2="59.69" y2="73.66" width="0.6096" layer="16"/>
 <wire x1="59.69" y1="73.66" x2="60.7740125" y2="72.5759875" width="0.6096" layer="16"/>
@@ -2901,21 +2895,15 @@ design rules under a new name.</description>
 <signal name="OE">
 <contactref element="SV2" pad="11"/>
 <contactref element="SV2" pad="9"/>
-<contactref element="IC1" pad="27"/>
-<wire x1="76.2" y1="74.93" x2="76.2" y2="84.455" width="0.6096" layer="16"/>
 <wire x1="76.2" y1="84.455" x2="72.39" y2="88.265" width="0.6096" layer="16"/>
 <wire x1="72.39" y1="88.265" x2="69.85" y2="88.265" width="0.6096" layer="16"/>
 </signal>
 <signal name="DATA_HIGH">
 <contactref element="SV2" pad="13"/>
-<contactref element="IC1" pad="26"/>
-<wire x1="78.74" y1="74.93" x2="78.74" y2="84.455" width="0.6096" layer="16"/>
 <wire x1="78.74" y1="84.455" x2="74.93" y2="88.265" width="0.6096" layer="16"/>
 </signal>
 <signal name="DATA_LOW">
 <contactref element="SV2" pad="18"/>
-<contactref element="IC1" pad="25"/>
-<wire x1="81.28" y1="74.93" x2="81.28" y2="89.535" width="0.6096" layer="16"/>
 <wire x1="81.28" y1="89.535" x2="80.01" y2="90.805" width="0.6096" layer="16"/>
 </signal>
 <signal name="+3V3">
