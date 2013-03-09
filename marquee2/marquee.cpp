@@ -89,7 +89,7 @@ void loop() {
     i = 0;
   }
   cnt++;
-  _delay_ms(100);
+  //_delay_ms(100);
 }
 
 int main() {
