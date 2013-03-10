@@ -17,7 +17,7 @@
 #define SINGLE_LINE
 
 // HELLO WORLD
-uint8_t msg[] = {8, 5, 12, 12, 15, 23, 15, 18, 12, 4};
+uint8_t msg[] = {40, 37, 44, 44, 47, 55, 47, 50, 44, 36};
 #ifdef SINGLE_LINE
   const uint8_t msg_length = 10;
 #else
