@@ -10,8 +10,8 @@ uint8[]	window data
 
 different windows and their data:
 0: raw (show image)
-uint16	length of image (?)
-uint16[]	raw image shown
+uint16	length of image
+uint8[]	raw image shown
 
 1: marquee2 (show text and if it is oversized, scroll it through)
 uint8	options: 0: single line 1: dual line (+font)
@@ -49,7 +49,7 @@ TODO
 uint8	options: 0: single line 1: dual line (+font)
 
 demo: (55 bytes)
-05 02 00 20 01 00 04 T  E  S  T  00 A8 01 01 18
+05 02 20 00 01 00 04 T  E  S  T  A8 00 01 01 18
 D  i  e  s     i  s  t     e  i  n     T  e  s 
 t  t  e  x  t  !  !  !  0E T  E  S  T  0  1  2 
 3  4  5  6  7  8  9 
@@ -75,7 +75,7 @@ C  A  F  E  00 00 02 01 06 03 00 00 03 00
 05 01 00 00 05 00
 
 4: (407 bytes)
-05 01 00 00 00 01 90 FF FF FF FF FF FF FF FF FF
+05 01 00 00 00 90 01 FF FF FF FF FF FF FF FF FF
 FF FF FF FF FF FF FF FF FF FF 7F FF FF FF FF FF
 FF FF BB F7 FF FF FF FF FE FF 7F F7 EF FF FF FF
 FB DB FF FD BF FF FB FF DE D6 FF FF F7 FF FF F6
