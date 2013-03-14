@@ -1,0 +1,103 @@
+set by flash / MCU:
+uint8	connected displays
+set by serial: 
+uint8	count of windows
+each window:
+uint16	window width (0=auto determine)
+uint8	window type
+uint8[]	window data
+
+
+different windows and their data:
+0: raw (show image)
+uint16	length of image (?)
+uint16[]	raw image shown
+
+1: marquee2 (show text and if it is oversized, scroll it through)
+uint8	options: 0: single line 1: dual line (+font)
+uint8	text length
+char[]	ASCII Text
+optional, if options 1 bit is set:
+uint8	lower text length
+char[]	lower ASCII Text
+
+2: timedate
+uint8	options: 0: single line 1: dual line (+font)
+uint8	timedate options:
+	bit 1: show time (0) or date (1)
+	time:
+		bit 2: show seconds
+		(bit 3: 24 hour time)
+		(bit 4: show AM/PM)
+		(bit 5: . instead of :)
+	date:
+		bit 2: show year
+		(bit 3: 4-digit year)
+		(bit 4: reversed date format (Y-M-D))
+		(bit 5: - instead of .)
+optional, if options bit 1 is set:
+uint8	lower timedate options (see above)
+
+3: analogclock
+uint8	options:
+	bit 1: show seconds
+
+4: tetrinet
+TODO
+
+5: serial console
+uint8	options: 0: single line 1: dual line (+font)
+
+demo: (55 bytes)
+05 02 00 20 01 00 04 T  E  S  T  00 A8 01 01 18
+D  i  e  s     i  s  t     e  i  n     T  e  s 
+t  t  e  x  t  !  !  !  0E T  E  S  T  0  1  2 
+3  4  5  6  7  8  9 
+
+05 02 00 20 01 00 04 54 45 53 54 00 A8 01 01 18
+44 69 65 73 20 69 73 74 20 65 69 6E 20 54 65 73
+74 74 65 78 74 21 21 21 0E 54 45 53 54 30 31 32
+33 34 35 36 37 38 39
+
+example data for image (demo.png)
+1: (67 bytes)
+05 05 00 00 01 00 07 W  I  C  H  T  I  G  00 00
+01 01 10 E  s  s  e  n     b  e  s  t  e  l  l 
+e  n  !  12 G  l  e  i  c  h     w  i  r  d    
+g  e  h  o  l  t  00 00 04 00 00 02 01 04 01 00
+00 03 00
+
+2: (30 bytes)
+05 03 00 00 01 00 0D R  E  P  A  R  A  T  U  R 
+C  A  F  E  00 00 02 01 06 03 00 00 03 00
+
+3: (6 bytes)
+05 01 00 00 05 00
+
+4: (407 bytes)
+05 01 00 00 00 01 90 FF FF FF FF FF FF FF FF FF
+FF FF FF FF FF FF FF FF FF FF 7F FF FF FF FF FF
+FF FF BB F7 FF FF FF FF FE FF 7F F7 EF FF FF FF
+FB DB FF FD BF FF FB FF DE D6 FF FF F7 FF FF F6
+BA BF DF DB FF FE FA FF AF AB FF FF 7A FB EF 9D
+BF FF EA E6 FF BF BD F9 E7 AF BE FE FB AB AD FE
+FF AB B5 FF DF AA 75 FD FE 97 97 FE F9 AB DF F6
+6D 9D F6 FF 1B A7 FE D9 6B 7F 95 A5 FF FE 6A 9B
+B5 65 DF FE 6A 93 D5 7D 7E D6 A7 AB D9 7C 76 A7
+9B DA EC 75 B7 9E 5A E3 A5 3C FE D7 13 A9 EC 5E
+57 E3 BA 3C C5 CB 3F 76 E0 89 1F 7F E4 C0 3B 3F
+C4 E1 3F 1E C0 E9 BF 16 50 E9 AF 16 50 E9 AF 16
+50 E9 AF 16 50 E9 AF 16 50 E9 AF 06 40 F9 BD 04
+42 FB BD 04 02 B3 ED 4C 12 B3 69 08 94 D7 4B 28
+B4 82 41 7D 1E 82 E0 29 17 D4 C8 0A 23 61 58 9E
+A6 40 11 35 CC 88 22 56 95 21 50 94 86 4A 59 21
+22 94 88 4A 63 21 18 94 84 4A 62 01 19 64 24 99
+80 02 56 64 29 11 80 84 16 59 60 00 0A 56 A1 00
+14 6A 81 00 54 55 02 00 58 54 81 02 24 58 09 01
+A0 44 06 10 90 42 41 08 14 61 40 04 12 10 88 40
+21 16 04 00 A0 40 09 12 20 08 84 40 01 02 50 28
+08 01 02 00 40 54 10 00 84 00 02 24 40 02 21 00
+08 20 00 09 02 00 40 00 10 24 01 00 08 01 00 10
+02 00 40 04 00 00 20 00 04 08 00 00 01 02 00 00
+40 00 00 00 00 00 10 00 00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 
