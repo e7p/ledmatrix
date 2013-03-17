@@ -11,17 +11,16 @@
 #define SRCK PC6
 #define RCK PC7
 
-#define PANELS 1
+#define PANELS 5
 #define PANELDATA_SIZE (80*PANELS)
 
 #define SINGLE_LINE
 
-// HELLO WORLD
-uint8_t msg[] = {40, 37, 44, 44, 47, 55, 47, 50, 44, 36};
+char msg[] = "Hallo /dev/tal!!! 1234567";
 #ifdef SINGLE_LINE
-  const uint8_t msg_length = 10;
+  const uint16_t msg_length = 25;
 #else
-  const uint8_t msg_length = 5;
+  const uint16_t msg_length = 12;
 #endif
 uint8_t c = 0;
 
@@ -65,13 +64,13 @@ void setup() {
 }
 
 uint8_t i = 0;
-uint8_t cnt = 0;
+uint16_t cnt = 0;
 void loop() {
   if(cnt < 8*msg_length) {
     #ifndef SINGLE_LINE
-      shiftLine(font[8*msg[c]+i], font[8*msg[c+msg_length]+i]);
+      shiftLine(font[8*(msg[c]-32)+i], font[8*(msg[c+msg_length]-32)+i]);
     #else
-      shiftDouble(font[8*msg[c]+i]);
+      shiftDouble(font[8*(msg[c]-32)+i]);
     #endif
     i++;
     if(i==8) {
@@ -84,7 +83,7 @@ void loop() {
   } else if (cnt < 16*msg_length + 10) {
     shiftLine(0, 0);
   } else {
-    cnt = 255;
+    cnt = -1;
     c = 0;
     i = 0;
   }

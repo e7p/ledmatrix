@@ -2,8 +2,6 @@
  * Code by Endres */
 #define F_CPU 8000000UL
 #include <avr/io.h>
-#include <avr/interrupt.h>
-#include <util/delay.h>
 
 #define DATA_LOW PC4
 #define DATA_HIGH PC2
@@ -11,7 +9,7 @@
 #define SRCK PC6
 #define RCK PC7
 
-#define PANELS 2
+#define PANELS 5
 #define PANELDATA_SIZE (80*PANELS)
 
 uint8_t panelData[PANELDATA_SIZE];
@@ -65,30 +63,10 @@ void shiftPixelData(uint8_t data) {
 void setup() {
   DDRC |= (1<<DATA_LOW)|(1<<DATA_HIGH)|(1<<OE)|(1<<SRCK)|(1<<RCK);
   screen_on();
-
-  // Initialize Timers
-  // 8-bit Timer 0 at 8.16ms
-  TCCR0B |= (1<<CS02); // Prescaler 256
-
-  // Interrupts
-  TIMSK0 |= (1<<TOIE0);
-  sei();
 }
-
-uint8_t x = 0x0C;
-uint8_t y = 1;
-uint8_t z = 1;
 
 void loop() {
-  x ^= 0x04;
-  shiftPixelData(x);
-  for(uint8_t i = 0; i < y; i++) {
-    _delay_us(40);
-  }
-}
-
-ISR(TIMER0_OVF_vect) {
-  y = (y + 1) % 255;
+  shiftPixelData(0xff);
 }
 
 int main() {
