@@ -1,5 +1,20 @@
-all:
-	avr-gcc -mmcu=atmega644 -O2 snake.cpp -o snake.o
-	avr-objcopy -j .text -j .data -O ihex snake.o snake.hex
-asm:
-	avr-gcc -mmcu=atmega644 -O2 -S snake.cpp -o snake.s
+FILE=snake.hex
+CFLAGS=-mmcu=atmega644 -O2 -std=c99
+
+%.o: %.c
+	avr-gcc $(CFLAGS) -o $@ $<
+
+%.hex: %.o
+	avr-objcopy -j .text -j .data -O ihex $< $@
+
+%.s: %.c
+	avr-gcc $(CFLAGS) -S -o $@ $<
+
+all: $(FILE)
+asm: $(FILE:.hex=.s)
+
+clean:
+	rm -f *.o *.s *.hex
+
+flash: $(FILE)
+	avrdude -C /etc/avrdude.conf -p m644 -P usb -c usbasp -U flash:w:$<:a
