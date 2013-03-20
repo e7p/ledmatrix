@@ -1,6 +1,9 @@
+// for linker, emulator, and programmer's sake
+#include "avr_mcu_section.h"
+AVR_MCU(F_CPU, "atmega644");
+
 /* Marquee (scrolling message) for LED-Matrix 2
  * Code by Endres */
-#define F_CPU 8000000UL
 #include <avr/io.h>
 #include <util/delay.h>
 #include "font.h"
@@ -16,7 +19,7 @@
 
 #define SINGLE_LINE
 
-char msg[] = "Hallo /dev/tal!!!ÄÖÜßäöü€";
+char msg[] = "  Hallo WeltäöüßÄÖÜ€!  1234567890";
 #ifdef SINGLE_LINE
   const uint16_t msg_length = 25;
 #else
@@ -39,14 +42,10 @@ void shiftLine(uint8_t value_high, uint8_t value_low) {
     value_low = value_low >> 1;
     value_high = value_high >> 1;
     PORTC |= (1<<SRCK);
-    _delay_ms(1);
     PORTC &= ~(1<<SRCK);
-    _delay_ms(1);
   }
   PORTC |= (1<<RCK);
-  _delay_ms(1);
   PORTC &= ~(1<<RCK);
-  _delay_ms(1);
 }
 
 void shiftDouble(uint8_t value) {
@@ -88,7 +87,7 @@ void loop() {
     i = 0;
   }
   cnt++;
-  //_delay_ms(100);
+  _delay_ms(200);
 }
 
 int main() {
