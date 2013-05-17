@@ -10,6 +10,9 @@ CFLAGS=-mmcu=atmega644 -O2 -std=c99
 %.s: %.c
 	avr-gcc $(CFLAGS) -S -o $@ $<
 
+%.bin: %.o
+	avr-objcopy -j .text -j .data -O binary $< $@
+
 all: $(FILE)
 asm: $(FILE:.hex=.s)
 

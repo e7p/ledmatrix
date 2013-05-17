@@ -19,7 +19,7 @@ AVR_MCU(F_CPU, "atmega644");
 
 #define SINGLE_LINE
 
-char msg[] = "  Hallo WeltäöüßÄÖÜ€!  1234567890";
+char msg[] = "  Hallo Welt        !  1234567890";
 #ifdef SINGLE_LINE
   const uint16_t msg_length = 25;
 #else

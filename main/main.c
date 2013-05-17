@@ -5,6 +5,7 @@
 #define F_CPU 8000000UL
 #include <avr/io.h>
 #include <util/delay.h>
+#include "font.h"
 
 #define DATA_LOW PC4
 #define DATA_HIGH PC2
@@ -16,6 +17,9 @@
 #define PANELDATA_SIZE (40*PANELS)
 
 // TODO: Following will go into EEPROM when it is finished... or... think about it! ;)
+// Maybe save it to eeprom per command and reload it only once into RAM every reboot
+// to save EEPROM cycles
+
 uint8_t storeData[] = {
   0x05, 0x02, 0x20, 0x00, 0x01, 0x00, 0x04, 0x54,
   0x45, 0x53, 0x54, 0xA8, 0x00, 0x01, 0x01, 0x18,
@@ -25,6 +29,9 @@ uint8_t storeData[] = {
   0x0E, 0x54, 0x45, 0x53, 0x54, 0x30, 0x31, 0x32,
   0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39
 };
+
+// Must be allocated in setup!
+uint8_t variables[4];
 
 uint16_t panelData[PANELDATA_SIZE];
 
@@ -44,6 +51,16 @@ void setPixel(uint16_t x, uint8_t y, uint8_t value) {
 void setRow(uint8_t x, uint8_t y, uint8_t value) {
   // TODO: Fixme
   panelData[2*x+y] = value;
+}
+
+void setDouble(uint8_t x, uint8_t value) {
+  uint16_t value_lowhigh = 0;
+  for(int i = 0; i < 8; i++) {
+    value_lowhigh |= ((value&1)*3)<<i*2;
+    value = value >> 1;
+  }
+  setRow(x, 0, value_lowhigh>>8);
+  setRow(x, 1, value_lowhigh);
 }
 
 uint16_t getPixel(int x, int y) {
@@ -79,13 +96,22 @@ void setup() {
   DDRC |= (1<<DATA_LOW)|(1<<DATA_HIGH)|(1<<OE)|(1<<SRCK)|(1<<RCK);
   screen_on();
   
-  // TODO Do basically the same as in loop, but just note down the actual window widths if not specified. or edit them in EEPROM (maybe this is preferred as EEPROM is read continuously in the loop function, but 00 00 widths can be edited easily, so it will save computing power)
+  // Check connected displays? if backlink is active, don't think so because it wouldn't be necessary if stored in EEPROM as it won't be changed much
+  // Load EEPROM Content into RAM
+  // Edit 00 00 Widths to matching displays connected - calculate the width once.
+  // Allocate variable memory. This will be: 2 for each marquee, W*H/64 for each console
+  // - for each marquee: preset xpos for centered strings, so it must only be checked if the width is fitting into the window's width
+  // Start Clock timer
 }
 
+// Timer Interrupt for exactly 1s counts uptime higher and if overflows adds value to the time (each ~18hrs, so it is not as important by now)
+
+uint16_t xOffset = 0, windowWidth;
+uint8_t *data, *variable, *tmp_pointer;
+uint8_t tmp[16];
 void loop() {
   // TODO code this
   /*
-  - check connected displays? maybe, if it does not take too long and if backlink is active or just do this at setup
   - Go through storeData (start cnt...)
     - ignore 1st byte (PANELS)
     - read 2nd byte into WindowCount
@@ -107,15 +133,22 @@ void loop() {
     - next i
   - if PixelDataHasChanged: shiftPixelData
   */
-  uint8_t *data = &storeData[1];
-  uint8_t windowCount = *data;
-  data++;
-  uint16_t xOffset = 0, windowWidth;
-  for(uint8_t i = 0; i < windowCount; i++) {
+  *data = &storeData[2];
+  *variable = &variables[0];
+  xOffset = 0;
+  for(uint8_t i = 0; i < storeData[1]; i++) {
     windowWidth = *(uint16_t*)data;
     data += 2;
     switch(*data++) {
       case 1: // marquee2
+      tmp[0] = *(data++); // Options bit
+      tmp[1] = *(data++); // Length of 1st line
+      for(uint8_t j = 0; j < tmp[1]; j++) {
+        // TODO: getNextCharacter
+        for(uint8_t k = 0; k < 8; k++) {
+          setDouble(xOffset + *variables + j*8 + k, *(tmp_pointer++)); // TODO only if option is like this
+        }
+      }
       // TODO
       break;
     }

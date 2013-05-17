@@ -18,3 +18,6 @@ clean:
 
 flash: $(FILE)
 	avrdude -C /etc/avrdude.conf -p m644 -P usb -c usbasp -U flash:w:$<:a
+
+simulate:
+	../simulate.sh $(FILE:.hex=.c)

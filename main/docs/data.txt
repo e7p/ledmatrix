@@ -13,7 +13,7 @@ different windows and their data:
 uint16	length of image
 uint8[]	raw image shown
 
-1: marquee2 (show text and if it is oversized, scroll it through)
+1: marquee2 (show text and if it is oversized, scroll it through) (2x uint8_t variables for scroll-position)
 uint8	options: 0: single line 1: dual line (+font)
 uint8	text length
 char[]	ASCII Text
@@ -21,7 +21,7 @@ optional, if options 1 bit is set:
 uint8	lower text length
 char[]	lower ASCII Text
 
-2: timedate
+2: timedate (0)
 uint8	options: 0: single line 1: dual line (+font)
 uint8	timedate options:
 	bit 1: show time (0) or date (1)
@@ -38,14 +38,14 @@ uint8	timedate options:
 optional, if options bit 1 is set:
 uint8	lower timedate options (see above)
 
-3: analogclock
+3: analogclock (0)
 uint8	options:
 	bit 1: show seconds
 
-4: tetrinet
+4: tetrinet (?)
 TODO
 
-5: serial console
+5: serial console (character buffer = W*H/64 uint8_t variables)
 uint8	options: 0: single line 1: dual line (+font)
 
 demo: (55 bytes)
