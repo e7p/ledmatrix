@@ -1,0 +1,35 @@
+Partlist
+
+Exported from controllerv2.brd at 10.05.13 21:05
+
+EAGLE Version 6.1.0 Copyright (c) 1988-2012 CadSoft
+
+Assembly variant: 
+
+Part     Value          Package      Library      Position (inch)       Orientation
+
+C1       22pF           C050-024X044 resistor     (3.25 2.55)           R0	?
+C2       22pF           C050-024X044 resistor     (3.25 2.35)           R0	?
+C3       100µF          C050-030X075 resistor     (4.5 2.65)            R90	?
+C4       100nF          C050-024X044 resistor     (5.25 0.2)            R270	?
+C5       100nF          C050-024X044 resistor     (4.95 1.6)            R180	?
+D1       0V7            TO247BV      parts        (4.75 3.4)            R0	#
+D2       S15D40C        TO247BV      parts        (5.45 3.4)            R0	#
+IC1      MEGA644        DIL40        avr-5        (4 2.65)              R270	#
+Q1       8MHz           QS           special      (3.5 2.45)            R90	?
+R1       10k            0207/10      resistor     (2.75 3)              R0	?
+R2       470k           0207/10      resistor     (4.95 2.6)            R0	#
+R3       470k           0207/10      resistor     (4.95 2.75)           R180	#
+R4       10k            0207/10      resistor     (5.3 0.4)             R180	?
+S1       RESET_MCU      B3F-10XX     switch-omron (2.85 2.6)            R180	#
+S2       RESET_ETH      B3F-10XX     switch-omron (5.55 0.2)            R180	#
+SV1      ISP            ML10         con-ml       (3.2 3.2)             R90	#
+SV2      MATRIX2        ML20         con-ml       (5.5 2.25)            R270	#
+SV3                     FE10-2       con-lsta     (5 0.6)               R180
+SV4                     FE10-2       con-lsta     (5 1.4)               R180
+X1       LED POWER      W237-102     con-wago-500 (6 3.15)              R90	#
+X2       GND            W237-102     con-wago-500 (6 2.6)               R90	#
+X3       POWER          W237-103     con-wago-500 (6 1.95)              R90	#
+
+
+Test abcdef ,.,-.,.,<<>>1!2"3§$4%5&67/ggjfkjgjklfjkgjdlkfjglkdöjglkjläöü+#'*-_:.;,<>|^°°123456789=/*-+aaaa
