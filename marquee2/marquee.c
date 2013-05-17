@@ -16,7 +16,7 @@
 
 #define SINGLE_LINE
 
-char msg[] = "Hallo /dev/tal!!!ÄÖÜßäöü€";
+char msg[] = " ... NEEDFUL THINGS ...  ";
 #ifdef SINGLE_LINE
   const uint16_t msg_length = 25;
 #else
