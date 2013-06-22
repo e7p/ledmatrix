@@ -1,4 +1,3 @@
-#include <avr/io.h>
 #ifndef F_CPU
 #define F_CPU 8000000UL
 #endif
@@ -30,7 +29,11 @@ void setPixel(uint16_t x, uint8_t y, uint8_t value) {
 }
 
 void setDoubleRow(uint8_t x, uint8_t value) {
-  panelData[x] = value; //FIX!
+  panelData[x] = 0;
+  for(int i = 0; i < 8; i++) {
+    panelData[x] |= ((value&1)*3)<<i*2;
+    value = value >> 1;
+  }
 }
 
 void setRow(uint8_t x, uint16_t value) {

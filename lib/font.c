@@ -2,8 +2,10 @@
 #include "font_data.h"
 #include "ledmatrix.h"
 
-uint8_t* getNextFontChar(uint8_t* msg) {
- uint8_t chr = *(msg++);
+char *msg;
+
+uint8_t* getNextFontChar(void) {
+ char chr = *(msg++);
  uint8_t* pointer;
  if(chr & 0x80) { // simple UTF-8
   pointer = &font[0x2f8]; // DEL if not found
@@ -33,10 +35,12 @@ uint8_t* getNextFontChar(uint8_t* msg) {
  return pointer;
 }
 
-void writeText(uint8_t* msg, uint8_t x) {
+void writeText(char* txt, uint8_t x) {
+  msg = txt;
   uint8_t *chr;
+  uint8_t c;
   while(*msg != 0) {
-    chr = getNextFontChar(msg);
+    chr = getNextFontChar();
     for(int i = 0; i < 8; i++) {
       setDoubleRow(x++, *(chr++));
     }

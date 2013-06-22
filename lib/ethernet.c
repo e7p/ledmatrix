@@ -8,24 +8,12 @@
 #include <avr/pgmspace.h>
 #include "ethernet.h"
 
-
-
-unsigned char			OpenSocket(unsigned char  sock, unsigned char  eth_protocol, unsigned int  tcp_port);
-void					CloseSocket(unsigned char  sock);
-void					DisconnectSocket(unsigned char  sock);
-unsigned char			Listen(unsigned char  sock);
-unsigned char			Send(unsigned char  sock, const unsigned char  *buf, unsigned int  buflen);
-unsigned int			Receive(unsigned char  sock, unsigned char  *buf, unsigned int  buflen);
-unsigned int			ReceivedSize(unsigned char  sock);
-
 void					my_select(void);
 void					my_deselect(void);
 unsigned char			my_xchg(unsigned char  val);
 
 
 #define  MAX_BUF					512			/* largest buffer we can read from chip */
-
-#define  HTTP_PORT					555			/* TCP port */
 
 /*
  *  Callback function block
@@ -43,8 +31,29 @@ W5100_CALLBACKS				my_callbacks;
 
 unsigned char						buf[MAX_BUF];
 
+void Connect(unsigned char  sock, unsigned char eth_protocol, unsigned char tcp_ip[4], unsigned int tcp_port)
+{
+	unsigned int			sockaddr;
+    if (sock >= W5100_NUM_SOCKETS)  return;	// illegal socket value is bad!
 
+	sockaddr =  W5100_SKT_BASE(sock);				// calc base addr for this socket
 
+    if (W51_read(sockaddr+W5100_SR_OFFSET) == W5100_SKT_SR_CLOSED)    // Make sure we close the socket first
+	{
+		CloseSocket(sock);
+    }
+
+    W51_write(sockaddr+W5100_MR_OFFSET ,eth_protocol);		// set protocol for this socket
+    W51_write(sockaddr+W5100_DIPR_OFFSET, tcp_ip[0]);		// set destination ip for this socket
+    W51_write(sockaddr+W5100_DIPR_OFFSET + 1, tcp_ip[1]);
+    W51_write(sockaddr+W5100_DIPR_OFFSET + 2, tcp_ip[2]);
+    W51_write(sockaddr+W5100_DIPR_OFFSET + 3, tcp_ip[3]);
+    W51_write(sockaddr+W5100_DPORT_OFFSET, ((tcp_port & 0xFF00) >> 8 ));		// set destination port for this socket (MSB)
+    W51_write(sockaddr+W5100_DPORT_OFFSET + 1, (tcp_port & 0x00FF));			// set destination port for this socket (LSB)
+    W51_write(sockaddr+W5100_CR_OFFSET, W5100_SKT_CR_CONNECT);	               	// open the socket
+
+    while (W51_read(sockaddr+W5100_CR_OFFSET))  ;			// loop until device reports socket is open (blocks!!)
+}
 
 unsigned char  OpenSocket(unsigned char  sock, unsigned char  eth_protocol, unsigned int  tcp_port)
 {
@@ -74,10 +83,6 @@ unsigned char  OpenSocket(unsigned char  sock, unsigned char  eth_protocol, unsi
     return  retval;
 }
 
-
-
-
-
 void  CloseSocket(unsigned char  sock)
 {
 	unsigned int			sockaddr;
@@ -88,9 +93,6 @@ void  CloseSocket(unsigned char  sock)
 	W51_write(sockaddr+W5100_CR_OFFSET, W5100_SKT_CR_CLOSE);	// tell chip to close the socket
 	while (W51_read(sockaddr+W5100_CR_OFFSET))  ;	// loop until socket is closed (blocks!!)
 }
-
-
-
 
 void  DisconnectSocket(unsigned char  sock)
 {
@@ -125,9 +127,6 @@ unsigned char  Listen(unsigned char  sock)
     }
     return  retval;
 }
-
-
-
 
 unsigned char  Send(unsigned char  sock, const unsigned char  *buf, unsigned int  buflen)
 {
@@ -183,6 +182,66 @@ unsigned char  Send(unsigned char  sock, const unsigned char  *buf, unsigned int
 }
 
 
+unsigned char UDPSend(unsigned char  sock, unsigned char udp_ip[4], unsigned int udp_port, const unsigned char  *buf, unsigned int  buflen)
+{
+	unsigned int					ptr;
+	unsigned int					offaddr;
+	unsigned int					realaddr;
+	unsigned int					txsize;
+	unsigned int					timeout;   
+	unsigned int					sockaddr;
+
+    if (buflen == 0 || sock >= W5100_NUM_SOCKETS)  return  W5100_FAIL;		// ignore illegal requests
+	sockaddr = W5100_SKT_BASE(sock);			// calc base addr for this socket
+    // Make sure the TX Free Size Register is available
+	txsize = W51_read(sockaddr+W5100_TX_FSR_OFFSET);		// make sure the TX free-size reg is available
+    txsize = (((txsize & 0x00FF) << 8 ) + W51_read(sockaddr+W5100_TX_FSR_OFFSET + 1));
+
+    timeout = 0;
+    while (txsize < buflen)
+	{
+		_delay_ms(1);
+
+		txsize = W51_read(sockaddr+W5100_TX_FSR_OFFSET);		// make sure the TX free-size reg is available
+    	txsize = (((txsize & 0x00FF) << 8 ) + W51_read(sockaddr+W5100_TX_FSR_OFFSET + 1));
+
+		if (timeout++ > 1000) 						// if max delay has passed...
+		{
+			DisconnectSocket(sock);					// can't connect, close it down
+			return  W5100_FAIL;						// show failure
+		}
+	}	
+  
+    W51_write(sockaddr+W5100_DIPR_OFFSET, udp_ip[0]);		// set destination ip for this socket
+    W51_write(sockaddr+W5100_DIPR_OFFSET + 1, udp_ip[1]);
+    W51_write(sockaddr+W5100_DIPR_OFFSET + 2, udp_ip[2]);
+    W51_write(sockaddr+W5100_DIPR_OFFSET + 3, udp_ip[3]);
+    W51_write(sockaddr+W5100_DPORT_OFFSET, ((udp_port & 0xFF00) >> 8 ));		// set destination port for this socket (MSB)
+    W51_write(sockaddr+W5100_DPORT_OFFSET + 1, (udp_port & 0x00FF));			// set destination port for this socket (LSB)
+
+
+   // Read the Tx Write Pointer
+	ptr = W51_read(sockaddr+W5100_TX_WR_OFFSET);
+	offaddr = (((ptr & 0x00FF) << 8 ) + W51_read(sockaddr+W5100_TX_WR_OFFSET + 1));
+
+    while (buflen)
+	{
+		buflen--;
+		realaddr = W5100_TXBUFADDR + (offaddr & W5100_TX_BUF_MASK);		// calc W5100 physical buffer addr for this socket
+
+		W51_write(realaddr, *buf);					// send a byte of application data to TX buffer
+		offaddr++;									// next TX buffer addr
+		buf++;										// next input buffer addr
+    }
+
+    W51_write(sockaddr+W5100_TX_WR_OFFSET, (offaddr & 0xFF00) >> 8);	// send MSB of new write-pointer addr
+    W51_write(sockaddr+W5100_TX_WR_OFFSET + 1, (offaddr & 0x00FF));		// send LSB	
+
+    W51_write(sockaddr+W5100_CR_OFFSET, W5100_SKT_CR_SEND);	// start the send on its way
+	while (W51_read(sockaddr+W5100_CR_OFFSET))  ;	// loop until socket starts the send (blocks!!)
+
+    return  W5100_OK;
+}
 
 /*
  *  Define the SPI port, used to exchange data with a W5100 chip.
@@ -293,15 +352,13 @@ unsigned char  my_xchg(unsigned char  val)
 	return  SPDR;
 }
 
-	unsigned int					sockaddr;
-	unsigned char					mysocket;
+// magic number! declare the socket number we will use (0-3)
+#define MYSOCKET 0
+// calc address of W5100 register set for this socket
+#define SOCKADDR W5100_SKT_BASE(MYSOCKET)
 
 void ethernet_setup(void)
 {
-
-
-	mysocket = 0;											// magic number! declare the socket number we will use (0-3)
-	sockaddr = W5100_SKT_BASE(mysocket);					// calc address of W5100 register set for this socket
 
 /*
  *  Initialize the ATmega644p SPI subsystem
@@ -337,32 +394,29 @@ void ethernet_setup(void)
  */
 void ethernet_loop(void) {
 	unsigned int					rsize;
-		switch  (W51_read(sockaddr+W5100_SR_OFFSET))		// based on current status of socket...
+		switch  (W51_read(SOCKADDR+W5100_SR_OFFSET))		// based on current status of socket...
 		{
 			case  W5100_SKT_SR_CLOSED:						// if socket is closed...
-			if (OpenSocket(mysocket, W5100_SKT_MR_TCP, HTTP_PORT) == mysocket)		// if successful opening a socket...
+			if (OpenSocket(MYSOCKET, W5100_SKT_MR_TCP, 555) == MYSOCKET)		// if successful opening a socket...
 			{
-				Listen(mysocket);
+				Listen(MYSOCKET);
 				_delay_ms(1);
 			}
 			break;
 
 			case  W5100_SKT_SR_ESTABLISHED:					// if socket connection is established...
-			rsize = ReceivedSize(mysocket);					// find out how many bytes
+			rsize = ReceivedSize(MYSOCKET);					// find out how many bytes
 			if (rsize > 0)
 			{
-				if (Receive(mysocket, buf, rsize) != W5100_OK)  break;	// if we had problems, all done
+				if (Receive(MYSOCKET, buf, rsize) != W5100_OK)  break;	// if we had problems, all done
 /*
  *  Add code here to process the payload from the packet.
- *
- *  For now, we just ignore the payload and send a canned HTML page so the client at least
- *  knows we are alive.
  */
 				strcpy_P((char *)buf, PSTR("Hello World\r\n"));
 				strcpy_P((char *)buf, PSTR("This is LED-Matrix!\r\n"));
-				if (Send(mysocket, buf, strlen((char *)buf)) == W5100_FAIL)  break;		// just throw out the packet for now
+				if (Send(MYSOCKET, buf, strlen((char *)buf)) == W5100_FAIL)  break;		// just throw out the packet for now
 
-				DisconnectSocket(mysocket);
+				DisconnectSocket(MYSOCKET);
 			}
 			else											// no data yet...
 			{
@@ -375,7 +429,7 @@ void ethernet_loop(void) {
 			case  W5100_SKT_SR_TIME_WAIT:
 			case  W5100_SKT_SR_CLOSE_WAIT:
 			case  W5100_SKT_SR_LAST_ACK:
-			CloseSocket(mysocket);
+			CloseSocket(MYSOCKET);
 			break;
 		}
 }

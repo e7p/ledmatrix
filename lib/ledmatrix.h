@@ -1,3 +1,4 @@
+#include <avr/io.h>
 void clear(void);
 void setPixel(uint16_t x, uint8_t y, uint8_t value);
 void setDoubleRow(uint8_t x, uint8_t value);

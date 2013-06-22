@@ -5,6 +5,7 @@
 #include "../lib/ledmatrix.h"
 #include "../lib/font.h"
 #include "../lib/ethernet.h"
+#include "my_ethernet.h"
 
 uint8_t gameTick;
 
@@ -24,11 +25,11 @@ void setup() {
 void loop() {
   if(gameTick > 64) {
     //foo
-    writeText("Connect to 192.168.1.12 555 via telnet", 0);
+    writeText("Connect to 192.168.1.12 555 via telnet", 8);
     shiftPixelData();
     gameTick-=64; // 16=normal
   }
-  ethernet_loop();
+  my_ethernet_loop();
 }
 
 ISR(TIMER1_OVF_vect) {

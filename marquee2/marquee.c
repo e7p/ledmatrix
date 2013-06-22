@@ -16,7 +16,8 @@
 
 #define SINGLE_LINE
 
-char msg[] = " ... NEEDFUL THINGS ...  ";
+char msg[] = "Über 7m Kabel geflasht!!!";
+
 #ifdef SINGLE_LINE
   const uint16_t msg_length = 25;
 #else
@@ -64,19 +65,18 @@ void screen_on() {
 
 void shiftLine(uint8_t value_high, uint8_t value_low) {
   for(int j = 0; j < 8; j++) {
-    PORTC &= ~((1<<DATA_LOW)|(1<<DATA_HIGH));
-    PORTC |= ((value_low&1)<<DATA_LOW)|((value_high&1)<<DATA_HIGH);
+    uint8_t portc = ((value_low&1)<<DATA_LOW)|((value_high&1)<<DATA_HIGH)|(1<<OE);
+    //PORTC &= ~((1<<DATA_LOW)|(1<<DATA_HIGH));
+    //PORTC |= ((value_low&1)<<DATA_LOW)|((value_high&1)<<DATA_HIGH);
     value_low = value_low >> 1;
     value_high = value_high >> 1;
-    PORTC |= (1<<SRCK);
-    _delay_ms(1);
-    PORTC &= ~(1<<SRCK);
-    _delay_ms(1);
+    PORTC = portc;
+    _delay_us(1);
+    portc |= (1<<SRCK);
+    PORTC = portc;
+    //_delay_us(5);
   }
   PORTC |= (1<<RCK);
-  _delay_ms(1);
-  PORTC &= ~(1<<RCK);
-  _delay_ms(1);
 }
 
 void shiftDouble(uint8_t value) {
@@ -120,7 +120,7 @@ void loop() {
     i = 0;
   }
   cnt++;
-  //_delay_ms(200);
+  _delay_ms(50);
 }
 
 int main() {
