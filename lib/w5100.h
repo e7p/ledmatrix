@@ -225,43 +225,11 @@
 #define  W5100_SKT_MR_ND		0x20	  	/* No Delayed Ack(TCP) flag */
 #define  W5100_SKT_MR_MULTI	  	0x80	  	/* support multicasting */
 
-/*
- *  The W5100_CALLBACKS structure is used to pass a collection of function pointers to the
- *  W5100 library code at run-time.  These functions are target-dependent, based on the
- *  design of your target hardware.  The W5100 library code will call these functions as needed,
- *  which means the library code does not have to be rebuilt just because your hardware design
- *  changed.
- */
-typedef struct  W5100_callbacks_t
-{
-	void					(* _select)(void);					// function for selecting the W5100 chip
-	unsigned char			(* _xchg)(unsigned char  val);		// function for exchanging a byte with the W5100
-	void					(* _deselect)(void);				// function for deselecting the W5100
-	void					(* _reset)(void);					// function for reseting the W5100 (optional)
-}  W5100_CALLBACKS;
-
-
-
 
 
 /*
  *  Wiznet W5100 support functions
  */
-
- /*
-  *  W51_register      register the callback functions for hardware access of the W5100 chip
-  *
-  *  Argument pcallbacks contains a pointer to a block of function pointers.  These function
-  *  pointers provide target-specific functions for performing basic I/O with the W5100
-  *  device.  Refer to the definition of the W5100_CALLBACKS structure above.
-  *
-  *  You must define functions for ._select, ._xchg, and ._deselect or the W5100 library
-  *  will not work.  You are not required to provide a function for ._reset, though it
-  *  is strongly advised.  If you do not have a reset function, define ._reset as 0.
-  */
-void					W51_register(W5100_CALLBACKS  *pcallbacks);
-
-
 
 /*
  *  W51_write      write a byte to a specific address in the W5100

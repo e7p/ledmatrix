@@ -1,67 +1,72 @@
+#include <avr/io.h>
 #ifndef F_CPU
 #define F_CPU 8000000UL
 #endif
 #include <util/delay.h>
 #include "w5100.h"
 
-#ifndef  FALSE
-#define  FALSE		0
-#define  TRUE		!FALSE
+#ifndef FALSE
+#define FALSE 0
+#define TRUE  !FALSE
 #endif
 
 /*
- *  Define the function pointers used to access the SPI port assigned to the
- *  W5100 device.  These pointers will be filled in at run-time when the host
- *  calls W51_register().
+ *  Define the SPI port, used to exchange data with a W5100 chip.
  */
-static  void					(*select)(void) = (void *)0;
-static  unsigned char			(*xchg)(unsigned char  val) = (void *)0;
-static  void					(*deselect)(void) = (void *)0;
-static  void					(*reset)(void) = (void *)0;
+#define SPI_PORT PORTB /* target-specific port containing the SPI lines */
+#define SPI_DDR  DDRB  /* target-specific DDR for the SPI port lines */
 
-static  unsigned char			inited = FALSE;
+#define CS_DDR   DDRB  /* target-specific DDR for chip-select */
+#define CS_PORT  PORTB /* target-specific port used as chip-select */
+#define CS_BIT   4     /* target-specific port line used as chip-select */
 
-void  W51_register(W5100_CALLBACKS  *pcallbacks)
-{
-	select = pcallbacks->_select;
-	xchg = pcallbacks->_xchg;
-	deselect = pcallbacks->_deselect;
-	reset = pcallbacks->_reset;
-	inited = FALSE;
-	if ((select) && (xchg) && (deselect))  inited = TRUE;	// these functions must be valid
+/*
+ *  Define macros for selecting and deselecting the W5100 device.
+ */
+#define W51_ENABLE  CS_PORT &= ~(1<<CS_BIT)
+#define W51_DISABLE CS_PORT |= (1<<CS_BIT)
+
+unsigned char xchg(unsigned char val) {
+  SPDR = val;
+  while(!(SPSR & (1<<SPIF)));
+  return SPDR;
 }
 
-void  W51_write(unsigned int  addr, unsigned char  data)
-{
-	if (!inited)  return;						// not set up, ignore request
-
-	select();									// enable the W5100 chip
-	xchg(W5100_WRITE_OPCODE);					// need to write a byte
-	xchg((addr & 0xff00) >> 8);				// send MSB of addr
-	xchg(addr & 0xff);							// send LSB
-	xchg(data);									// send the data
-	deselect();									// done with the chip
+void W51_write(unsigned int addr, unsigned char data) {
+  W51_ENABLE;                 // enable the W5100 chip
+  xchg(W5100_WRITE_OPCODE);   // need to write a byte
+  xchg((addr & 0xff00) >> 8); // send MSB of addr
+  xchg(addr & 0xff);          // send LSB
+  xchg(data);                 // send the data
+  W51_DISABLE;                // done with the chip
 }
 
-unsigned char  W51_read(unsigned int  addr)
-{
-	unsigned char				val;
-
-	if (!inited)  return  0;					// not set up, ignore request
-
-	select();									// enable the W5100 chip
-	xchg(W5100_READ_OPCODE);					// need to read a byte
-	xchg((addr & 0xff00) >> 8);				// send MSB of addr
-	xchg(addr & 0xff);							// send LSB
-	val = xchg(0x00);							// need to send a dummy char to get response
-	deselect();									// done with the chip
-	return  val;								// tell her what she's won
+unsigned char W51_read(unsigned int addr) {
+  unsigned char val;
+  W51_ENABLE;                 // enable the W5100 chip
+  xchg(W5100_READ_OPCODE);    // need to read a byte
+  xchg((addr & 0xff00) >> 8); // send MSB of addr
+  xchg(addr & 0xff);          // send LSB
+  val = xchg(0x00);           // need to send a dummy char to get response
+  W51_DISABLE;                // done with the chip
+  return val;                // tell her what she's won
 }
 
 void  W51_init(void)
 {
-	if (reset)  reset();						// if host provided a reset function, use it
-	else		W51_write(W5100_MR, W5100_MR_SOFTRST); 		// otherwise, force the w5100 to soft-reset
+  
+/*
+ *  Initialize the ATmega644p SPI subsystem
+ */
+	CS_PORT |= (1<<CS_BIT);									// pull CS pin high
+	CS_DDR |= (1<<CS_BIT);									// now make it an output
+
+	SPI_PORT = SPI_PORT | (1<<PORTB4);						// make sure SS is high
+	SPI_DDR = (1<<PORTB4)|(1<<PORTB5)|(1<<PORTB7);			// set MOSI, SCK and SS as output, others as input
+	SPCR = (1<<SPE)|(1<<MSTR);								// enable SPI, master mode 0
+	SPSR |= (1<<SPI2X);										// set the clock rate fck/2
+  
+	W51_write(W5100_MR, W5100_MR_SOFTRST); 		// otherwise, force the w5100 to soft-reset
 	_delay_ms(1);
 }
 

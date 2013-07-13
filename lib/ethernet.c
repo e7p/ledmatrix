@@ -8,26 +8,8 @@
 #include <avr/pgmspace.h>
 #include "ethernet.h"
 
-void					my_select(void);
-void					my_deselect(void);
-unsigned char			my_xchg(unsigned char  val);
-
 
 #define  MAX_BUF					512			/* largest buffer we can read from chip */
-
-/*
- *  Callback function block
- *
- *  Define callback functions for target-independent support of the
- *  W5100 chip.  Here is where you store pointers to the various
- *  functions needed by the W5100 library code.  These functions all
- *  handle tasks that are target-dependent, which means the library
- *  code can be target-INdependent.
- */
-W5100_CALLBACKS				my_callbacks;
-
-
-
 
 unsigned char						buf[MAX_BUF];
 
@@ -194,27 +176,6 @@ void UDPOpen(unsigned char  sock, unsigned char ip_1, unsigned char ip_2, unsign
     W51_write(sockaddr+W5100_DPORT_OFFSET + 1, (udp_port & 0x00FF));			// set destination port for this socket (LSB)
 }
 
-/*
- *  Define the SPI port, used to exchange data with a W5100 chip.
- */
-#define SPI_PORT 	PORTB				/* target-specific port containing the SPI lines */
-#define SPI_DDR  	DDRB				/* target-specific DDR for the SPI port lines */
-
-#define CS_DDR		DDRB				/* target-specific DDR for chip-select */
-#define CS_PORT 	PORTB				/* target-specific port used as chip-select */
-#define CS_BIT		4					/* target-specific port line used as chip-select */
-
-
-
-/*
- *  Define macros for selecting and deselecting the W5100 device.
- */
-#define  W51_ENABLE		CS_PORT&=~(1<<CS_BIT)
-#define  W51_DISABLE	CS_PORT|=(1<<CS_BIT)
-
-
-
-
 unsigned int  Receive(unsigned char  sock, unsigned char  *buf, unsigned int  buflen)
 {
     unsigned int					ptr;
@@ -266,43 +227,6 @@ unsigned int  ReceivedSize(unsigned char  sock)
 	return  val;
 }
 
-
-
-
-/*
- *  Simple wrapper function for selecting the W5100 device.  This function
- *  allows the library code to invoke a target-specific function for enabling
- *  the W5100 chip.
- */
-void  my_select(void)
-{
-	W51_ENABLE;
-}
-
-
-
-/*
- *  Simple wrapper function for deselecting the W5100 device.  This function
- *  allows the library code to invoke a target-specific function for disabling
- *  the W5100 chip.
- */
-void  my_deselect(void)
-{
-	W51_DISABLE;
-}
-
-
-
-/*
- *  my_xchg      callback function; exchanges a byte with W5100 chip
- */
-unsigned char  my_xchg(unsigned char  val)
-{
-	SPDR = val;
-	while  (!(SPSR & (1<<SPIF)))  ;
-	return  SPDR;
-}
-
 // magic number! declare the socket number we will use (0-3)
 #define MYSOCKET 0
 // calc address of W5100 register set for this socket
@@ -311,25 +235,6 @@ unsigned char  my_xchg(unsigned char  val)
 void ethernet_setup(void)
 {
 
-/*
- *  Initialize the ATmega644p SPI subsystem
- */
-	CS_PORT |= (1<<CS_BIT);									// pull CS pin high
-	CS_DDR |= (1<<CS_BIT);									// now make it an output
-
-	SPI_PORT = SPI_PORT | (1<<PORTB4);						// make sure SS is high
-	SPI_DDR = (1<<PORTB4)|(1<<PORTB5)|(1<<PORTB7);			// set MOSI, SCK and SS as output, others as input
-	SPCR = (1<<SPE)|(1<<MSTR);								// enable SPI, master mode 0
-	SPSR |= (1<<SPI2X);										// set the clock rate fck/2
-
-/*
- *  Load up the callback block, then initialize the Wiznet W5100
- */
-	my_callbacks._select = &my_select;						// callback for selecting the W5100
-	my_callbacks._xchg = &my_xchg;							// callback for exchanging data
-	my_callbacks._deselect = &my_deselect;					// callback for deselecting the W5100
-
-	W51_register(&my_callbacks);							// register our target-specific W5100 routines with the W5100 library
 	W51_init();												// now initialize the W5100
 
 /*
