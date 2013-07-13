@@ -39,22 +39,55 @@ struct ntp_frame {
   uint32_t transmit_timestamp_f;
 };
 
-void my_ethernet_setup(void) {
-  OpenSocket(0, W5100_SKT_MR_UDP, 123);
+  //uint8_t ip[4] = {192, 168, 1, 149};
   struct ntp_frame frame;
+  
+void my_ethernet_setup(void) {
+  //_delay_ms(20);
+  //OpenSocket(0, W5100_SKT_MR_UDP, 123);
   frame.flag = FLAG_LEAP_UNKNOWN | FLAG_VERSION_3 | FLAG_CLIENT;
   frame.peer_clock_stratum = 0x00;
   frame.peer_polling_intervall = 0x03;
   frame.peer_clock_precision = 0xfa;
   frame.root_delay = 0x00010000;
   frame.clock_dispersion = 0x00010000;
-  uint8_t ip[4] = {192, 168, 1, 149};
-  UDPSend(0, ip, 123, (char*)&frame, 48);
+  //Connect(1, W5100_SKT_MR_TCP, ip, 7);
+  //OpenSocket(1, W5100_SKT_MR_TCP, 555);
+  
+  //_delay_ms(20); // Needed?
   // {192, 168,   1, 149} ep-vostro.local
   // {176,   9,  44, 144} s7t.de
 }
 
+
+            char *hello = "This is LED-Matrix!\r\n";
+
 void my_ethernet_loop(void) {
+  switch  (W51_read(W5100_SKT_BASE(0)+W5100_SR_OFFSET))		// based on current status of socket...
+		{
+			case  W5100_SKT_SR_CLOSED:						// if socket is closed...
+			if (OpenSocket(0, W5100_SKT_MR_UDP, 123) == 0)		// if successful opening a socket...
+			{
+				//Listen(mysocket);
+				_delay_ms(1);
+			}
+			break;
+
+			case  W5100_SKT_SR_ESTABLISHED:					// if socket connection is established...
+			//else											// no data yet...
+			{
+				_delay_us(10);
+			}
+			break;
+
+			case  W5100_SKT_SR_FIN_WAIT:
+			case  W5100_SKT_SR_CLOSING:
+			case  W5100_SKT_SR_TIME_WAIT:
+			case  W5100_SKT_SR_CLOSE_WAIT:
+			case  W5100_SKT_SR_LAST_ACK:
+			//CloseSocket(mysocket);
+			break;
+  }
   unsigned int rsize;
   rsize = ReceivedSize(0); // find out how many bytes
   if(rsize > 0) {
@@ -63,5 +96,31 @@ void my_ethernet_loop(void) {
     sprintf(text, "Zeit: %8x%8x", (*frame).receive_timestamp_i, (*frame).receive_timestamp_f);
   } else {
     _delay_us(10);
+    UDPOpen(0, 192,168,1,122, 123);
+    Send(0, (char*)&frame, 48);
   }
+  
+  /*#define SOCKADDR W5100_SKT_BASE(1)
+  switch  (W51_read(SOCKADDR+W5100_SR_OFFSET))        // based on current status of socket...
+        {
+            case  W5100_SKT_SR_CLOSED:                        // if socket is closed...
+            _delay_ms(1);
+            //Connect(1, W5100_SKT_MR_TCP, ip, 555);
+            break;
+
+            case  W5100_SKT_SR_ESTABLISHED:                    // if socket connection is established...
+                _delay_us(10);
+                if (Send(1, hello, strlen(hello)) == W5100_FAIL)  break;        // just throw out the packet for now
+                DisconnectSocket(1);
+            break;
+
+            case  W5100_SKT_SR_FIN_WAIT:
+            case  W5100_SKT_SR_CLOSING:
+            case  W5100_SKT_SR_TIME_WAIT:
+            case  W5100_SKT_SR_CLOSE_WAIT:
+            case  W5100_SKT_SR_LAST_ACK:
+            CloseSocket(1);
+            break;
+        }*/
+  
 }

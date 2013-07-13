@@ -9,22 +9,21 @@
 #include <stdio.h>
 #include <string.h>
 
-uint8_t tick;
+uint8_t tick = 1;
 
 void setup() {
   ledmatrix_setup();
-  ethernet_setup();
+  ethernet_setup(); 
   my_ethernet_setup();
   
   // Initialize Timers
-  // 16-bit Timer 1 at 0.966s
-  TCCR1B |= (1<<CS12) | (1<<WGM12); // Prescaler 256
+  // 16-bit Timer 1 at 1s
+  TCCR1B = (1<<CS12) | (1<<WGM12); // Prescaler 256
   OCR1A = 31250-1;
 
   // Interrupts
   TIMSK1 |= (1<<OCIE1A);
   sei();
-  shiftPixelData();
 }
 
 void loop() {
@@ -35,7 +34,7 @@ void loop() {
     sprintf(text, "Tick %d", tick);
   }
   shiftPixelData();
-  my_ethernet_loop();
+  ethernet_loop();
 }
 
 ISR(TIMER1_COMPA_vect) {
