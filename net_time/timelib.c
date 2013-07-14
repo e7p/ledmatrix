@@ -67,7 +67,7 @@ void correct_dst(struct tm* time) {
     // Sunday found
     if(time->tm_mday == mday) {
       // Today is the change
-      isdst = (time->tm_hour > 2);
+      isdst = (time->tm_hour > 1);
       break;
     }
     // Is the next sunday in this month?
@@ -83,7 +83,7 @@ void correct_dst(struct tm* time) {
     // Sunday found
     if(time->tm_mday == mday) {
       // Today is the change
-      isdst = (time->tm_hour < 3);
+      isdst = (time->tm_hour < 2);
       break;
     }
     // Is the next sunday in this month?
