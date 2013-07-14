@@ -8,18 +8,18 @@
 #endif
 #include <util/delay.h>
 
-#define FLAG_LEAP_NO_WARNING 0x00
-#define FLAG_LEAP_61_SECONDS 0x40
-#define FLAG_LEAP_59_SECONDS 0x80
-#define FLAG_LEAP_UNKNOWN 0xC0
+#define NTP_LEAP_NO_WARNING 0x00
+#define NTP_LEAP_61_SECONDS 0x40
+#define NTP_LEAP_59_SECONDS 0x80
+#define NTP_LEAP_UNKNOWN 0xC0
 
-#define FLAG_VERSION_3 0x18
-#define FLAG_VERSION_4 0x20
+#define NTP_VERSION_3 0x18
+#define NTP_VERSION_4 0x20
 
-#define FLAG_SERVER 0x04
-#define FLAG_CLIENT 0x03
+#define NTP_SERVER 0x04
+#define NTP_CLIENT 0x03
 
-char text[25];
+uint32_t time;
 
 struct ntp_frame {
   uint8_t flag;
@@ -39,88 +39,53 @@ struct ntp_frame {
   uint32_t transmit_timestamp_f;
 };
 
-  //uint8_t ip[4] = {192, 168, 1, 149};
-  struct ntp_frame frame;
-  
+uint8_t ip[4] = {176, 9, 44, 144};
+// {192, 168,   1, 122} ep-vostro.local
+// {176,   9,  44, 144} s7t.de
+struct ntp_frame frame;
+
 void my_ethernet_setup(void) {
   //_delay_ms(20);
-  //OpenSocket(0, W5100_SKT_MR_UDP, 123);
-  frame.flag = FLAG_LEAP_UNKNOWN | FLAG_VERSION_3 | FLAG_CLIENT;
+
+  frame.flag = NTP_LEAP_UNKNOWN | NTP_VERSION_3 | NTP_CLIENT;
   frame.peer_clock_stratum = 0x00;
-  frame.peer_polling_intervall = 0x03;
+  frame.peer_polling_intervall = 0x06;
   frame.peer_clock_precision = 0xfa;
-  frame.root_delay = 0x00010000;
-  frame.clock_dispersion = 0x00010000;
-  //Connect(1, W5100_SKT_MR_TCP, ip, 7);
-  //OpenSocket(1, W5100_SKT_MR_TCP, 555);
-  
-  //_delay_ms(20); // Needed?
-  // {192, 168,   1, 149} ep-vostro.local
-  // {176,   9,  44, 144} s7t.de
+  frame.root_delay = 0x00000100;
+  frame.clock_dispersion = 0x00000100;
+
+  unsigned char status;
+  do {
+    status = GetStatus(0);
+    switch(status) {
+      case W5100_SKT_SR_CLOSED:
+      OpenSocket(0, W5100_SKT_MR_UDP, 123);
+      break;
+
+      case W5100_SKT_SR_UDP:
+      // Successful
+      break;
+
+      default:
+      CloseSocket(0);
+    }
+  } while(status != W5100_SKT_SR_UDP); // Block until opened
+  UDPOpen(0, ip, 123);
+  Send(0, (char*)&frame, sizeof frame);
+  //_delay_ms(20);
 }
 
-
-            char *hello = "This is LED-Matrix!\r\n";
-
 void my_ethernet_loop(void) {
-  switch  (W51_read(W5100_SKT_BASE(0)+W5100_SR_OFFSET))		// based on current status of socket...
-		{
-			case  W5100_SKT_SR_CLOSED:						// if socket is closed...
-			if (OpenSocket(0, W5100_SKT_MR_UDP, 123) == 0)		// if successful opening a socket...
-			{
-				//Listen(mysocket);
-				_delay_ms(1);
-			}
-			break;
-
-			case  W5100_SKT_SR_ESTABLISHED:					// if socket connection is established...
-			//else											// no data yet...
-			{
-				_delay_us(10);
-			}
-			break;
-
-			case  W5100_SKT_SR_FIN_WAIT:
-			case  W5100_SKT_SR_CLOSING:
-			case  W5100_SKT_SR_TIME_WAIT:
-			case  W5100_SKT_SR_CLOSE_WAIT:
-			case  W5100_SKT_SR_LAST_ACK:
-			//CloseSocket(mysocket);
-			break;
-  }
   unsigned int rsize;
-  rsize = ReceivedSize(0); // find out how many bytes
-  if(rsize > 0) {
-    if(Receive(0, buf, rsize) != W5100_OK) return; // if we had problems, all done
-    struct ntp_frame *frame = (struct ntp_frame*)&buf[8];
-    sprintf(text, "Zeit: %8x%8x", (*frame).receive_timestamp_i, (*frame).receive_timestamp_f);
-  } else {
-    _delay_us(10);
-    UDPOpen(0, 192,168,1,122, 123);
-    Send(0, (char*)&frame, 48);
+  
+  if(GetStatus(0) == W5100_SKT_SR_UDP) {
+    rsize = ReceivedSize(0); // find out how many bytes
+    if(rsize > 0) {
+      if(Receive(0, buf, rsize) != W5100_OK) return; // if we had problems, all done
+      struct ntp_frame *frame = (struct ntp_frame*)&buf[8];
+      time = __builtin_bswap32(frame->transmit_timestamp_i);
+    } else {
+      _delay_us(10);
+    }
   }
-  
-  /*#define SOCKADDR W5100_SKT_BASE(1)
-  switch  (W51_read(SOCKADDR+W5100_SR_OFFSET))        // based on current status of socket...
-        {
-            case  W5100_SKT_SR_CLOSED:                        // if socket is closed...
-            _delay_ms(1);
-            //Connect(1, W5100_SKT_MR_TCP, ip, 555);
-            break;
-
-            case  W5100_SKT_SR_ESTABLISHED:                    // if socket connection is established...
-                _delay_us(10);
-                if (Send(1, hello, strlen(hello)) == W5100_FAIL)  break;        // just throw out the packet for now
-                DisconnectSocket(1);
-            break;
-
-            case  W5100_SKT_SR_FIN_WAIT:
-            case  W5100_SKT_SR_CLOSING:
-            case  W5100_SKT_SR_TIME_WAIT:
-            case  W5100_SKT_SR_CLOSE_WAIT:
-            case  W5100_SKT_SR_LAST_ACK:
-            CloseSocket(1);
-            break;
-        }*/
-  
 }

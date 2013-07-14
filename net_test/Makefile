@@ -1,4 +1,4 @@
-FILE=time.hex
+FILE=test.hex
 CFLAGS=-mmcu=atmega644 -O2 -std=c99
 
 %.o: %.c
