@@ -39,17 +39,18 @@ struct ntp_frame {
   uint32_t transmit_timestamp_f;
 };
 
-uint8_t ip[4] = {176, 9, 44, 144};
+uint8_t ip[4] = {176, 221, 43, 3};
+// {176, 221,  43,   3} 0.de.pool.ntp.org
 // {192, 168,   1, 122} ep-vostro.local
 // {176,   9,  44, 144} s7t.de
 struct ntp_frame frame;
 
 void my_ethernet_setup(void) {
-  //_delay_ms(20);
+  _delay_ms(20);
 
   frame.flag = NTP_LEAP_UNKNOWN | NTP_VERSION_3 | NTP_CLIENT;
   frame.peer_clock_stratum = 0x00;
-  frame.peer_polling_intervall = 0x06;
+  frame.peer_polling_intervall = 0x08; // Every 256 Seconds
   frame.peer_clock_precision = 0xfa;
   frame.root_delay = 0x00000100;
   frame.clock_dispersion = 0x00000100;
@@ -70,9 +71,12 @@ void my_ethernet_setup(void) {
       CloseSocket(0);
     }
   } while(status != W5100_SKT_SR_UDP); // Block until opened
+  //_delay_ms(20);
+}
+
+void request_time(void) {
   UDPOpen(0, ip, 123);
   Send(0, (char*)&frame, sizeof frame);
-  //_delay_ms(20);
 }
 
 void my_ethernet_loop(void) {
@@ -84,6 +88,7 @@ void my_ethernet_loop(void) {
       if(Receive(0, buf, rsize) != W5100_OK) return; // if we had problems, all done
       struct ntp_frame *frame = (struct ntp_frame*)&buf[8];
       time = __builtin_bswap32(frame->transmit_timestamp_i);
+      TCNT1 = (uint32_t)(31249 * ((frame->transmit_timestamp_f >> 24) & 0xff) / 255);
     } else {
       _delay_us(10);
     }

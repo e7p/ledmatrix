@@ -15,8 +15,9 @@ uint8_t tick = 1;
 
 void setup() {
   ledmatrix_setup();
-  ethernet_setup(); 
+  ethernet_setup();
   my_ethernet_setup();
+  request_time();
 
   // Initialize Timers
   // 16-bit Timer 1 at 1s
@@ -28,22 +29,29 @@ void setup() {
   sei();
 }
 
-static const char p_week[] PROGMEM = "SoMoDiMiDoFrSaSo";
+static const char p_week[] = "SoMoDiMiDoFrSaSo";
+
+uint8_t update_timer = 0;
+char text[26];
 
 void loop() {
   if(tick > 0) {
-    time += tick;
+    while(tick > 0) {
+      update_timer++;
+      time++;
+      if(update_timer == 0) {
+        request_time();
+      }
+      tick--;
+    }
 
     //Fr, 21.06.2013 - 23:42:00
     struct tm format;
     gmtime_r(time, &format);
     correct_dst(&format);
-    char wday[3];
-    wday[0] = pgm_read_byte(&p_week[2*format.tm_wday]);
-    wday[1] = pgm_read_byte(&p_week[2*format.tm_wday+1]);
-    char text[27];
-    sprintf(text, PSTR("%s, %02d.%02d.%d - %02d:%02d:%02d"),
-      wday,
+    sprintf(text, "%c%c, %02d.%02d.%d - %02d:%02d:%02d",
+      p_week[2*format.tm_wday],
+      p_week[2*format.tm_wday+1],
       format.tm_mday,
       format.tm_mon + 1,
       format.tm_year + 1900,
@@ -51,11 +59,9 @@ void loop() {
       format.tm_min,
       format.tm_sec);
 
-    writeText(text, 8);
-
-    tick = 0;
+    writeText(text, 0);
+    shiftPixelData();
   }
-  shiftPixelData();
   my_ethernet_loop();
 }
 

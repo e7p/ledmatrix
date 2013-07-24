@@ -39,7 +39,7 @@ void writeText(char* txt, uint8_t x) {
   msg = txt;
   uint8_t *chr;
   uint8_t c;
-  while(*(msg+1) != 0) {
+  while(*(msg) != 0) { // msg+1?
     chr = getNextFontChar();
     for(int i = 0; i < 8; i++) {
       setDoubleRow(x++, *(chr++));

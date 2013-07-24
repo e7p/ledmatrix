@@ -45,6 +45,8 @@ void gmtime_r(uint32_t time, struct tm* output) {
   output->tm_mon = mon;
 
   output->tm_mday = day_number + 1;
+
+  output->tm_isdst = 0;
 }
 
 void correct_dst(struct tm* time) {
@@ -110,5 +112,5 @@ void correct_dst(struct tm* time) {
     time->tm_wday = (time->tm_wday + 1) % 7;
     time->tm_yday++; // See above
   }
-  time->tm_isdst = isdst;
+  time->tm_isdst = 1;
 }
