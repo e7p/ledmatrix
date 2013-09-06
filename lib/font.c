@@ -35,14 +35,23 @@ uint8_t* getNextFontChar(void) {
  return pointer;
 }
 
+
 void writeText(char* txt, uint8_t x) {
+  writeTextY(txt, x, 16);
+}
+
+void writeTextY(char* txt, uint8_t x, uint8_t y) {
   msg = txt;
   uint8_t *chr;
   uint8_t c;
-  while(*(msg) != 0) { // msg+1?
+  while(*(msg) != 0 && x < 200) { // msg+1?
     chr = getNextFontChar();
     for(int i = 0; i < 8; i++) {
-      setDoubleRow(x++, *(chr++));
+      if(y < 16) {
+        addDoubleRowUp(x++, *(chr++), y);
+      } else {
+        addDoubleRowDown(x++, *(chr++), y-16);
+      }
     }
   }
 }

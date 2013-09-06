@@ -10,9 +10,6 @@
 #define SRCK PC6
 #define RCK PC7
 
-#define PANELS 5
-#define PANELDATA_SIZE (40*PANELS)
-
 uint16_t panelData[PANELDATA_SIZE];
 
 void clear() {
@@ -32,6 +29,22 @@ void setDoubleRow(uint8_t x, uint8_t value) {
   panelData[x] = 0;
   for(int i = 0; i < 8; i++) {
     panelData[x] |= ((value&1)*3)<<i*2;
+    value = value >> 1;
+  }
+}
+
+void addDoubleRowUp(uint8_t x, uint8_t value, uint8_t y) {
+  panelData[x] &= 0xffff >> y;
+  for(int i = 0; i < 16-y; i++) {
+    panelData[x] |= ((value&1)*3)<<(i*2+y);
+    value = value >> 1;
+  }
+}
+
+void addDoubleRowDown(uint8_t x, uint8_t value, uint8_t y) {
+  panelData[x] &= 0xffff << 16-y;
+  for(int i = 0; i < 16-y; i++) {
+    panelData[x] |= ((value&1)*3)<<(i*2-y);
     value = value >> 1;
   }
 }
