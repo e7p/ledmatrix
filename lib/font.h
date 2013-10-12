@@ -1,4 +1,6 @@
 #include <avr/io.h>
 uint8_t* getNextFontChar(void);
-void writeText(char* txt, uint8_t x);
-void writeTextY(char* txt, uint8_t x, uint8_t y);
+uint8_t stringLength(char*);
+uint8_t scrollText(char*, uint16_t*);
+void writeText(char*, uint8_t);
+void writeTextY(char*, uint8_t, uint8_t);

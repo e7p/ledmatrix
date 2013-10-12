@@ -8,6 +8,7 @@ void           DisconnectSocket(unsigned char sock);
 unsigned char Listen(unsigned char sock);
 void           UDPOpen(unsigned char sock, unsigned char udp_ip[4], unsigned int udp_port);
 unsigned char Send(unsigned char sock, const unsigned char *buf, unsigned int buflen);
+unsigned char SendString(unsigned char sock, const char* string);
 unsigned int  Receive(unsigned char sock, unsigned char *buf, unsigned int buflen);
 unsigned int  ReceivedSize(unsigned char sock);
 unsigned int  GetStatus(unsigned char sock);

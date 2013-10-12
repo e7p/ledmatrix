@@ -13,9 +13,9 @@
 
 uint8_t tick = 1;
 
-void setup() {
-  ledmatrix_setup();
-  ethernet_setup();
+void setup_net_time() {
+  //ledmatrix_setup();
+  //ethernet_setup();
   my_ethernet_setup();
   request_time();
 
@@ -34,7 +34,7 @@ static const char p_week[] = "SoMoDiMiDoFrSaSo";
 uint8_t update_timer = 0;
 char text[26];
 
-void loop() {
+void loop_net_time() {
   if(tick > 0) {
     while(tick > 0) {
       update_timer++;
@@ -60,7 +60,7 @@ void loop() {
       format.tm_sec);
 
     writeText(text, 0);
-    shiftPixelData();
+    //shiftPixelData();
   }
   my_ethernet_loop();
 }
@@ -70,7 +70,7 @@ ISR(TIMER1_COMPA_vect) {
   tick++;
 }
 
-int main() {
+/*int main() {
   setup();
   while(1) loop();
-}
+}*/

@@ -1,5 +1,6 @@
 #include <avr/io.h>
 #include <stdio.h>
+#include <string.h>
 #ifndef F_CPU
 #define F_CPU 8000000UL
 #endif
@@ -16,7 +17,7 @@ void Connect(unsigned char sock, unsigned char eth_protocol, unsigned char tcp_i
   sockaddr = W5100_SKT_BASE(sock); // calc base addr for this socket
 
   // TODO: Check if this is supposed to work, as it checkes if already closed
-  if(W51_read(sockaddr+W5100_SR_OFFSET) == W5100_SKT_SR_CLOSED) { // Make sure we close the socket first
+  if(W51_read(sockaddr+W5100_SR_OFFSET) != W5100_SKT_SR_CLOSED) { // Make sure we close the socket first
     CloseSocket(sock);
   }
 
@@ -144,7 +145,7 @@ unsigned char Send(unsigned char sock, const unsigned char *buf, unsigned int bu
 
   while(buflen) {
     buflen--;
-    realaddr = W5100_TXBUFADDR + (offaddr & W5100_TX_BUF_MASK); // calc W5100 physical buffer addr for this socket
+    realaddr = (W5100_TXBUFADDR + (0x0800 * sock)) + (offaddr & W5100_TX_BUF_MASK);	 // calc W5100 physical buffer addr for this socket
 
     W51_write(realaddr, *buf); // send a byte of application data to TX buffer
     offaddr++; // next TX buffer addr
@@ -158,6 +159,10 @@ unsigned char Send(unsigned char sock, const unsigned char *buf, unsigned int bu
   while(W51_read(sockaddr+W5100_CR_OFFSET)); // loop until socket starts the send (blocks!)
 
   return W5100_OK;
+}
+
+unsigned char SendString(unsigned char sock, const char* string) {
+  return Send(sock, string, strlen(string));
 }
 
 unsigned int Receive(unsigned char sock, unsigned char *buf, unsigned int buflen) {
@@ -176,7 +181,7 @@ unsigned int Receive(unsigned char sock, unsigned char *buf, unsigned int buflen
 
   while(buflen) {
     buflen--;
-    realaddr = W5100_RXBUFADDR + (offaddr & W5100_RX_BUF_MASK);
+    realaddr = (W5100_RXBUFADDR + (0x0800 * sock)) + (offaddr & W5100_RX_BUF_MASK);
     *buf = W51_read(realaddr);
     offaddr++;
     buf++;

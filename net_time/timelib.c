@@ -30,8 +30,11 @@ void gmtime_r(uint32_t time, struct tm* output) {
   output->tm_wday = (day_number + 1) % 7;
 
   uint8_t year = 0;
-  while(day_number >= DAYS_OF_YEAR(year)) {
-    day_number -= DAYS_OF_YEAR(year);
+  uint16_t days_year;
+  while(1) {
+    days_year = DAYS_OF_YEAR(year);
+    if(day_number < days_year) break;
+    day_number -= days_year;
     year++;
   }
   output->tm_year = year;
@@ -67,13 +70,17 @@ void correct_dst(struct tm* time) {
       wday = (wday + 1) % 7;
     }
     // Sunday found
-    if(time->tm_mday == mday) {
-      // Today is the change
-      isdst = (time->tm_hour > 1);
-      break;
-    }
     // Is the next sunday in this month?
-    isdst = (mday >= days_month(time->tm_mon, time->tm_year));
+    if(mday <= 31) {
+      if(mday >= 25 && mday == time->tm_mday) {
+        // Today is the change
+        isdst = (time->tm_hour > 1);
+        break;
+      }
+      isdst = 0;
+    } else {
+      isdst = 1;
+    }
     break;
 
     case 9: // October
@@ -83,13 +90,17 @@ void correct_dst(struct tm* time) {
       wday = (wday + 1) % 7;
     }
     // Sunday found
-    if(time->tm_mday == mday) {
-      // Today is the change
-      isdst = (time->tm_hour < 2);
-      break;
-    }
     // Is the next sunday in this month?
-    isdst = (mday < days_month(time->tm_mon, time->tm_year));
+    if(mday <= 31) {
+      if(mday >= 25 && mday == time->tm_mday) {
+        // Today is the change
+        isdst = (time->tm_hour < 2);
+        break;
+      }
+      isdst = 1;
+    } else {
+      isdst = 0;
+    }
     break;
 
     default: // Summer
@@ -105,7 +116,7 @@ void correct_dst(struct tm* time) {
     time->tm_hour = 0;
     time->tm_mday++;
     if(time->tm_mday >= days_month(time->tm_mon, time->tm_year)) {
-      time->tm_mday = 0;
+      time->tm_mday = 1;
       time->tm_mon++;
       // No year change can ever take place in summer time
     }
