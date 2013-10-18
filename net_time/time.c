@@ -13,7 +13,7 @@
 
 uint8_t tick = 1;
 
-void setup_net_time() {
+void net_time_setup(void) {
   //ledmatrix_setup();
   //ethernet_setup();
   my_ethernet_setup();
@@ -34,7 +34,7 @@ static const char p_week[] = "SoMoDiMiDoFrSaSo";
 uint8_t update_timer = 0;
 char text[26];
 
-void loop_net_time() {
+uint8_t net_time_loop(uint8_t mode) {
   if(tick > 0) {
     while(tick > 0) {
       update_timer++;
@@ -45,24 +45,26 @@ void loop_net_time() {
       tick--;
     }
 
-    //Fr, 21.06.2013 - 23:42:00
-    struct tm format;
-    gmtime_r(time, &format);
-    correct_dst(&format);
-    sprintf(text, "%c%c, %02d.%02d.%d - %02d:%02d:%02d",
-      p_week[2*format.tm_wday],
-      p_week[2*format.tm_wday+1],
-      format.tm_mday,
-      format.tm_mon + 1,
-      format.tm_year + 1900,
-      format.tm_hour,
-      format.tm_min,
-      format.tm_sec);
+    if(mode > 0) {
+      //Fr, 21.06.2013 - 23:42:00
+      struct tm format;
+      gmtime_r(time, &format);
+      correct_dst(&format);
+      sprintf(text, "%c%c, %02d.%02d.%d - %02d:%02d:%02d",
+        p_week[2*format.tm_wday],
+        p_week[2*format.tm_wday+1],
+        format.tm_mday,
+        format.tm_mon + 1,
+        format.tm_year + 1900,
+        format.tm_hour,
+        format.tm_min,
+        format.tm_sec);
 
-    writeText(text, 0);
-    //shiftPixelData();
+      writeText(text, 0);
+    }
   }
   my_ethernet_loop();
+  return 0;
 }
 
 ISR(TIMER1_COMPA_vect) {
@@ -71,6 +73,11 @@ ISR(TIMER1_COMPA_vect) {
 }
 
 /*int main() {
-  setup();
-  while(1) loop();
+  ledmatrix_setup();
+  ethernet_setup();
+  net_time_setup();
+  while(1) {
+    net_time_loop(1);
+    shiftPixelData();
+  }
 }*/
