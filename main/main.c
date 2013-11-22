@@ -1,9 +1,14 @@
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <avr/pgmspace.h>
 #include "../lib/ledmatrix.h"
 #include "../lib/ethernet.h"
 #include "../net_time/time.h"
+
+// Foo
+#include "../net_time/timelib.h"
+#include "../net_time/my_ethernet.h"
 
 #define TELNET_CLOSED   0
 #define TELNET_INACTIVE 1
@@ -16,27 +21,39 @@ extern void net_twitter_setup(void);
 extern uint8_t net_twitter_loop(uint8_t);
 extern uint8_t nyan_loop(uint8_t);
 extern uint8_t augenkrebs_loop(uint8_t);
+extern void message_setup(void);
+extern uint8_t message_loop(uint8_t);
+extern void message_unload(void);
 
 struct modules {
   const char* name;
   void (*setup)(void);
   uint8_t (*loop)(uint8_t);
+  void (*unload)(void);
 };
 
-#define MODULE_COUNT 3
+#define MODULE_COUNT 4
 
 static const struct modules module_list[MODULE_COUNT] = {
-  { "net_time", &net_time_setup, &net_time_loop },
-  //{ "net_twitter", &net_twitter_setup, &net_twitter_loop },
-  { "nyan", NULL, &nyan_loop },
-  { "augenkrebs", NULL, &augenkrebs_loop }
+  { "net_time", &net_time_setup, &net_time_loop, NULL },
+  //{ "net_twitter", &net_twitter_setup, &net_twitter_loop, NULL },
+  { "nyan", NULL, &nyan_loop, NULL },
+  { "augenkrebs", NULL, &augenkrebs_loop, NULL },
+  { "message", &message_setup, &message_loop, &message_unload },
+};
+
+struct command {
+  const char* name;
+  void (*run)(char*);
 };
 
 const prog_char *welcome_message;
 
 #define MAX_MODULES 16
+#define MAX_COMMANDS 4
 
 static uint8_t loaded_modules[MAX_MODULES];
+static struct command* commands[MAX_COMMANDS];
 static uint8_t loaded_modules_count = 0;
 static uint8_t active_module = 0, rot_module = 0;
 
@@ -68,10 +85,31 @@ uint8_t addModule(char* module) {
   return 2;
 }
 
+uint8_t addCommand(const char* name, void (*callback)(char*)) {
+  for(int i = 0; i < MAX_COMMANDS; i++) {
+    if(commands[i] == 0)
+      continue;
+    if(strcmp(commands[i]->name, name) == 0)
+      return 0;
+  }
+  for(int i = 0; i < MAX_COMMANDS; i++) {
+    if(commands[i] == 0) {
+      struct command *cmd = malloc(sizeof(struct command));
+      cmd->name = name;
+      cmd->run = callback;
+      commands[i] = cmd;
+      return 1;
+    }
+  }
+}
+
 uint8_t delModule(char* module) {
   for(int i = 0; i < MAX_MODULES; i++) {
     if(strcmp(module_list[loaded_modules[i]].name, module) == 0) {
       // module unloaded
+      if(module_list[loaded_modules[i]].unload != NULL) {
+        module_list[loaded_modules[i]].unload();
+      }
       loaded_modules[i] = 255;
       loaded_modules_count--;
       return 0;
@@ -79,6 +117,19 @@ uint8_t delModule(char* module) {
   }
   // module not found
   return 2;
+}
+
+uint8_t delCommand(const char* name) {
+  for(int i = 0; i < MAX_COMMANDS; i++) {
+    if(commands[i] == 0)
+      continue;
+    if(strcmp(commands[i]->name, name) == 0) {
+      free(commands[i]);
+      commands[i] = 0;
+      return 1;
+    }
+  }
+  return 0;
 }
 
 void setup() {
@@ -90,6 +141,9 @@ void setup() {
   for(int i = 0; i < MAX_MODULES; i++) {
     loaded_modules[i] = 255;
   }
+
+  // TEMP
+  addModule("net_time");
 }
 
 uint8_t telnet_status = 0;
@@ -149,7 +203,7 @@ void loop() {
             strcmp(module_list[loaded_modules[i]].name, arg) == 0) {
             active_module = loaded_modules[i];
             strcpy(tmp, arg);
-            sprintf(buf, "Active Module set to: %s(%d)\r\n", tmp, active_module);
+            sprintf(buf, "Active Module set to: %s\r\n", tmp);
             SendString(3, buf);
             break;
           }
@@ -157,7 +211,9 @@ void loop() {
       } else if(strcmp(arg, "modprobe") == 0) {
         arg = strtok(NULL, " \r\n");
         strcpy(tmp, arg);
-        sprintf(buf, "Module %s loaded, return value: %d\r\n", tmp, addModule(tmp));
+        if(addModule(tmp) == 0) {
+          sprintf(buf, "Module %s loaded\r\n", tmp);
+        }
         SendString(3, buf);
       } else if(strcmp(arg, "lsmod") == 0) {
         tmp[0] = '\0';
@@ -173,17 +229,36 @@ void loop() {
       } else if(strcmp(arg, "rmmod") == 0) {
         arg = strtok(NULL, " \r\n");
         strcpy(tmp, arg);
-        sprintf(buf, "Module %s unloaded, return value: %d\r\n", tmp, delModule(tmp));
+        if(delModule(tmp) == 0) {
+          sprintf(buf, "Module %s unloaded\r\n", tmp);
+        }
         SendString(3, buf);
       } else if(strcmp(arg, "getmod") == 0) {
         sprintf(buf, "Rotated module: %d, Current module: %s(%d)\r\n", rot_module, module_list[active_module].name, active_module);
         SendString(3, buf);
       } else if(strcmp(arg, "help") == 0 || strcmp(arg, "?") == 0) {
-        SendString(3, "Defined functions:\n  ?, actmod, exit, getmod, help, lsmod, modprobe, rmmod\r\n");
+        SendString(3, "Defined functions:\r\n  ?, actmod, exit, getmod, help, lsmod, modprobe, rmmod\r\n");
+        strcpy(tmp, "Module commands:\r\n  ");
+        for(int i = 0; i < MAX_COMMANDS; i++) {
+          if(commands[i] != 0) {
+            strcat(tmp, commands[i]->name);
+            strcat(tmp, ", ");
+          }
+        }
+        uint8_t c = strlen(tmp);
+        tmp[c-2] = '\r';
+        tmp[c-1] = '\n';
+        SendString(3, tmp);
       } else {
+        for(int i = 0; i < MAX_COMMANDS; i++) {
+          if(commands[i] != 0 && strcmp(commands[i]->name, arg) == 0) {
+            commands[i]->run(buf+strlen(arg)+1);
+            goto finish;
+          }
+        }
         SendString(3, "Unknown command\r\n");
       }
-      telnet_status = TELNET_INACTIVE;
+finish: telnet_status = TELNET_INACTIVE;
     }
     break;
     

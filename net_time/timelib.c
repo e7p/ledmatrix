@@ -41,7 +41,7 @@ void gmtime_r(uint32_t time, struct tm* output) {
 
   output->tm_yday = day_number;
   uint8_t mon = 0;
-  while(day_number > days_month(mon, year)) {
+  while(day_number >= days_month(mon, year)) {
     day_number -= days_month(mon, year);
     mon++;
   }
