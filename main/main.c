@@ -1,6 +1,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <avr/interrupt.h>
 #include <avr/pgmspace.h>
 #include "../lib/ledmatrix.h"
 #include "../lib/ethernet.h"
@@ -24,6 +25,9 @@ extern uint8_t augenkrebs_loop(uint8_t);
 extern void message_setup(void);
 extern uint8_t message_loop(uint8_t);
 extern void message_unload(void);
+extern void hotnews_setup(void);
+extern uint8_t hotnews_loop(uint8_t);
+extern void hotnews_unload(void);
 
 struct modules {
   const char* name;
@@ -32,7 +36,7 @@ struct modules {
   void (*unload)(void);
 };
 
-#define MODULE_COUNT 4
+#define MODULE_COUNT 5
 
 static const struct modules module_list[MODULE_COUNT] = {
   { "net_time", &net_time_setup, &net_time_loop, NULL },
@@ -40,6 +44,7 @@ static const struct modules module_list[MODULE_COUNT] = {
   { "nyan", NULL, &nyan_loop, NULL },
   { "augenkrebs", NULL, &augenkrebs_loop, NULL },
   { "message", &message_setup, &message_loop, &message_unload },
+  { "hotnews", &hotnews_setup, &hotnews_loop, &hotnews_unload },
 };
 
 struct command {
@@ -55,7 +60,10 @@ const prog_char *welcome_message;
 static uint8_t loaded_modules[MAX_MODULES];
 static struct command* commands[MAX_COMMANDS];
 static uint8_t loaded_modules_count = 0;
-static uint8_t active_module = 0, rot_module = 0;
+static uint8_t active_module = 0, rot_module = 0, last_module = 0;
+
+static uint8_t tick = 0;
+uint32_t uptime = 0;
 
 uint8_t addModule(char* module) {
   for(int i = 0; i < MODULE_COUNT; i++) {
@@ -141,9 +149,19 @@ void setup() {
   for(int i = 0; i < MAX_MODULES; i++) {
     loaded_modules[i] = 255;
   }
+  
+  // Initialize Timers
+  // 16-bit Timer 1 at 1s
+  TCCR1B = (1<<CS12) | (1<<WGM12); // Prescaler 256
+  OCR1A = 31250-1;
+  
+  // Interrupts
+  TIMSK1 |= (1<<OCIE1A);
+  sei();
 
-  // TEMP
+  // TEMP static bootloader
   addModule("net_time");
+  //addModule("hotnews");
 }
 
 uint8_t telnet_status = 0;
@@ -151,6 +169,12 @@ uint8_t buf[256];
 uint8_t tmp[256];
 
 void loop() {
+  /* Clock */
+  while(tick > 0) {
+    tick--;
+    uptime++;
+  }
+  
   /* Telnet Loop */
   uint8_t status = GetStatus(3);
   switch(status) {
@@ -185,7 +209,7 @@ void loop() {
     case TELNET_INACTIVE:
     Send(3, "$ ", 2);
     telnet_status = TELNET_SHELL;
-    break;
+    //break;
     
     case TELNET_SHELL:
     // Check if data received
@@ -236,8 +260,11 @@ void loop() {
       } else if(strcmp(arg, "getmod") == 0) {
         sprintf(buf, "Rotated module: %d, Current module: %s(%d)\r\n", rot_module, module_list[active_module].name, active_module);
         SendString(3, buf);
+      } else if(strcmp(arg, "uptime") == 0) {
+        sprintf(buf, "Uptime: %d seconds\r\n", uptime);
+        SendString(3, buf);
       } else if(strcmp(arg, "help") == 0 || strcmp(arg, "?") == 0) {
-        SendString(3, "Defined functions:\r\n  ?, actmod, exit, getmod, help, lsmod, modprobe, rmmod\r\n");
+        SendString(3, "Defined functions:\r\n  ?, actmod, exit, getmod, help, lsmod, modprobe, rmmod, uptime\r\n");
         strcpy(tmp, "Module commands:\r\n  ");
         for(int i = 0; i < MAX_COMMANDS; i++) {
           if(commands[i] != 0) {
@@ -252,7 +279,7 @@ void loop() {
       } else {
         for(int i = 0; i < MAX_COMMANDS; i++) {
           if(commands[i] != 0 && strcmp(commands[i]->name, arg) == 0) {
-            commands[i]->run(buf+strlen(arg)+1);
+            commands[i]->run(strtok(buf+strlen(arg)+1, "\r\n"));
             goto finish;
           }
         }
@@ -272,10 +299,11 @@ finish: telnet_status = TELNET_INACTIVE;
   }
 
   /* Module Loop functions */
+  last_module = active_module;
   for(int i = 0; i < MAX_MODULES; i++) {
     if(loaded_modules[i] < 255) {
       if(loaded_modules[i] == active_module) {
-        if(module_list[active_module].loop(1) > 0) {
+        if(module_list[active_module].loop(last_module == active_module ? 2 : 1) > 0) {
           // rotate active module
           if(rot_module == active_module && loaded_modules_count > 1) {
             do {
@@ -301,6 +329,11 @@ finish: telnet_status = TELNET_INACTIVE;
   setPixel(0,3,telnet_status == TELNET_PROGRAM);
   
   shiftPixelData();
+}
+
+ISR(TIMER1_COMPA_vect) {
+  // Clock tick
+  tick++;
 }
 
 int main() {

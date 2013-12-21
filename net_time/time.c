@@ -1,7 +1,6 @@
 /* Network Time for LED-Matrix 2
  * Code by Endres */
 #define F_CPU 8000000UL
-#include <avr/interrupt.h>
 #include "../lib/ledmatrix.h"
 #include "../lib/font.h"
 #include "../lib/ethernet.h"
@@ -10,39 +9,33 @@
 #include <stdio.h>
 #include <string.h>
 #include <avr/pgmspace.h>
-
-uint8_t tick = 1;
+extern uint32_t uptime; // TODO: put into main-header
 
 void net_time_setup(void) {
   //ledmatrix_setup();
   //ethernet_setup();
   my_ethernet_setup();
   request_time();
-
-  // Initialize Timers
-  // 16-bit Timer 1 at 1s
-  TCCR1B = (1<<CS12) | (1<<WGM12); // Prescaler 256
-  OCR1A = 31250-1;
-
-  // Interrupts
-  TIMSK1 |= (1<<OCIE1A);
-  sei();
 }
 
 static const char p_week[] = "SoMoDiMiDoFrSaSo";
 
 uint8_t update_timer = 0;
+uint32_t last_uptime = 0;
+uint8_t time_tick;
 char text[26];
 
 uint8_t net_time_loop(uint8_t mode) {
-  if(tick > 0) {
-    while(tick > 0) {
+  time_tick += uptime - last_uptime;
+  last_uptime = uptime;
+  if(time_tick > 0 || mode == 2) {
+    while(time_tick > 0) {
       update_timer++;
       time++;
       if(update_timer == 0) {
         request_time();
       }
-      tick--;
+      time_tick--;
     }
 
     if(mode > 0) {
@@ -65,11 +58,6 @@ uint8_t net_time_loop(uint8_t mode) {
   }
   my_ethernet_loop();
   return 0;
-}
-
-ISR(TIMER1_COMPA_vect) {
-  // Clock tick
-  tick++;
 }
 
 /*int main() {
