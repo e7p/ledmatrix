@@ -2,12 +2,13 @@
 #include "font_data.h"
 #include "ledmatrix.h"
 #include <string.h>
+#include <avr/pgmspace.h>
 
-char *msg;
+char* msg;
 
-uint8_t* getNextFontChar(void) {
+const uint8_t* getNextFontChar(void) {
  char chr = *(msg++);
- uint8_t* pointer;
+ const uint8_t* PROGMEM pointer;
  if(chr & 0x80) { // simple UTF-8
   pointer = &font[0x2f8]; // DEL if not found
   uint8_t uc_chr[] = {0, 0};
@@ -63,7 +64,7 @@ uint8_t scrollText(char* txt, uint16_t* j) {
     *j = 0;
     return 0;
   }
-  uint8_t *chr;
+  const uint8_t *chr;
   uint8_t c;
   uint8_t x = 0, m = 0;
   if(*j<200) x = 200 - *j;
@@ -76,7 +77,7 @@ uint8_t scrollText(char* txt, uint16_t* j) {
   while(*(msg) != 0 && x < 200) { // msg+1?
     chr = getNextFontChar() + m;
     for(int i = m; i < 8; i++) {
-      setDoubleRow(x++, *(chr++));
+      setDoubleRow(x++, pgm_read_byte(chr++));
     }
     m = 0;
   }
@@ -84,20 +85,28 @@ uint8_t scrollText(char* txt, uint16_t* j) {
 }
 
 void writeText(char* txt, uint8_t x) {
-  writeTextY(txt, x, 16);
+  msg = txt;
+  const uint8_t *chr;
+  uint8_t c;
+  while(*(msg) != 13 && *(msg) != 0 && x < 200) { // msg+1?
+    chr = getNextFontChar();
+    for(int i = 0; i < 8; i++) {
+        setDoubleRow(x++, pgm_read_byte(chr++));
+    }
+  }
 }
 
 void writeTextY(char* txt, uint8_t x, uint8_t y) {
   msg = txt;
-  uint8_t *chr;
+  const uint8_t *chr;
   uint8_t c;
   while(*(msg) != 13 && *(msg) != 0 && x < 200) { // msg+1?
     chr = getNextFontChar();
     for(int i = 0; i < 8; i++) {
       if(y < 16) {
-        addDoubleRowUp(x++, *(chr++), y);
+        addDoubleRowUp(x++, pgm_read_byte(chr++), y);
       } else {
-        addDoubleRowDown(x++, *(chr++), y-16);
+        addDoubleRowDown(x++, pgm_read_byte(chr++), y-16);
       }
     }
   }

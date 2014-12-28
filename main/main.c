@@ -28,6 +28,8 @@ extern void message_unload(void);
 extern void hotnews_setup(void);
 extern uint8_t hotnews_loop(uint8_t);
 extern void hotnews_unload(void);
+extern uint8_t langertisch_loop(uint8_t);
+extern uint8_t line_animation_loop(uint8_t);
 
 struct modules {
   const char* name;
@@ -36,7 +38,7 @@ struct modules {
   void (*unload)(void);
 };
 
-#define MODULE_COUNT 5
+#define MODULE_COUNT 7
 
 static const struct modules module_list[MODULE_COUNT] = {
   { "net_time", &net_time_setup, &net_time_loop, NULL },
@@ -45,6 +47,8 @@ static const struct modules module_list[MODULE_COUNT] = {
   { "augenkrebs", NULL, &augenkrebs_loop, NULL },
   { "message", &message_setup, &message_loop, &message_unload },
   { "hotnews", &hotnews_setup, &hotnews_loop, &hotnews_unload },
+  { "langertisch", NULL, &langertisch_loop, NULL },
+  { "line_animation", NULL, &line_animation_loop, NULL },
 };
 
 struct command {
@@ -52,7 +56,7 @@ struct command {
   void (*run)(char*);
 };
 
-const prog_char *welcome_message;
+const char welcome_message[] PROGMEM = "LED Matrix v0.1 - Built " __DATE__ " " __TIME__ "\r\n";
 
 #define MAX_MODULES 16
 #define MAX_COMMANDS 4
@@ -141,8 +145,6 @@ uint8_t delCommand(const char* name) {
 }
 
 void setup() {
-  welcome_message = PSTR("LED Matrix v0.1 - Built " __DATE__ " " __TIME__ "\r\n");
-  
   ledmatrix_setup();
   ethernet_setup();
   

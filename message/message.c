@@ -26,7 +26,6 @@ uint8_t message_loop(uint8_t mode) {
     clear();
     writeText(message, 0);
   }
-  return 0;
 }
 
 /*int main() {
