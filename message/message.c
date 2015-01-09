@@ -4,6 +4,7 @@
 #include <avr/interrupt.h>
 #include "../lib/ledmatrix.h"
 #include "../lib/font.h"
+#include "../net_time/my_ethernet.h"
 #include "../main/main.h"
 #include <string.h>
 
@@ -25,6 +26,11 @@ uint8_t message_loop(uint8_t mode) {
   if(mode > 0) {
     clear();
     writeText(message, 0);
+  }
+  if(time % 60 == 1) {
+    return 1;
+  } else {
+    return 0;
   }
 }
 

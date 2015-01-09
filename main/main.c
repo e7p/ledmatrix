@@ -30,6 +30,7 @@ extern uint8_t hotnews_loop(uint8_t);
 extern void hotnews_unload(void);
 extern uint8_t langertisch_loop(uint8_t);
 extern uint8_t line_animation_loop(uint8_t);
+extern uint8_t uptime_loop(uint8_t);
 
 struct modules {
   const char* name;
@@ -38,7 +39,7 @@ struct modules {
   void (*unload)(void);
 };
 
-#define MODULE_COUNT 7
+#define MODULE_COUNT 8
 
 static const struct modules module_list[MODULE_COUNT] = {
   { "net_time", &net_time_setup, &net_time_loop, NULL },
@@ -49,6 +50,7 @@ static const struct modules module_list[MODULE_COUNT] = {
   { "hotnews", &hotnews_setup, &hotnews_loop, &hotnews_unload },
   { "langertisch", NULL, &langertisch_loop, NULL },
   { "line_animation", NULL, &line_animation_loop, NULL },
+  { "uptime", NULL, &uptime_loop, NULL },
 };
 
 struct command {
@@ -163,6 +165,8 @@ void setup() {
 
   // TEMP static bootloader
   addModule("net_time");
+  //net_time_loop(0);
+  addModule("nyan");
   //addModule("hotnews");
 }
 

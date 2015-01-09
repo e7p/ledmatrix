@@ -19,7 +19,10 @@
 #define NTP_SERVER 0x04
 #define NTP_CLIENT 0x03
 
+extern uint32_t uptime; // TODO: put into main-header
+
 uint32_t time;
+uint32_t time_boot_offset;
 
 struct ntp_frame {
   uint8_t flag;
@@ -39,7 +42,8 @@ struct ntp_frame {
   uint32_t transmit_timestamp_f;
 };
 
-uint8_t ip[4] = {176, 221, 43, 3};
+//uint8_t ip[4] = {176, 221, 43, 3};
+uint8_t ip[4] = {192, 168, 1, 1};
 // {176, 221,  43,   3} 0.de.pool.ntp.org
 // {192, 168,   1, 122} ep-vostro.local
 // {176,   9,  44, 144} s7t.de
@@ -87,8 +91,9 @@ void my_ethernet_loop(void) {
     if(rsize > 0) {
       if(Receive(0, buf, rsize) != W5100_OK) return; // if we had problems, all done
       struct ntp_frame *frame = (struct ntp_frame*)&buf[8];
-      time = __builtin_bswap32(frame->transmit_timestamp_i);
       TCNT1 = (uint32_t)(31249 * ((frame->transmit_timestamp_f >> 24) & 0xff) / 255);
+      time = __builtin_bswap32(frame->transmit_timestamp_i);
+      time_boot_offset = time - uptime;
     } else {
       _delay_us(10);
     }

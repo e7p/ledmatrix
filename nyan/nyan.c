@@ -48,7 +48,7 @@ uint8_t nyan_loop(uint8_t mode) {
   if(s==4) s = 0;
   drawNyan(x, f++);
   if(f == 6) f = 0;
-  _delay_ms(80);
+  _delay_ms(60);
   return 0;
 }
 
