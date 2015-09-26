@@ -4,6 +4,7 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <util/delay.h>
+#include <stdbool.h>
 
 #define CLEAR_PANEL_PIN PB4
 // atmega pin #5 <-> panel pin #10

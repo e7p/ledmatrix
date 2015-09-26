@@ -35,7 +35,7 @@ uint8_t net_time_loop(uint8_t mode) {
       request_time();
     }
 
-  if(mode > 0) {
+  //if(mode > 0) {
     time = time_boot_offset + uptime;
     //Fr, 21.06.2013 - 23:42:00
     struct tm format;
@@ -52,7 +52,7 @@ uint8_t net_time_loop(uint8_t mode) {
       format.tm_sec);
 
     writeText(text, 0);
-  }
+  //}
 
   my_ethernet_loop();
   if(mode != 0 && time % 1800 == 1) {
