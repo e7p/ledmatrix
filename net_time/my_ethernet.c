@@ -42,8 +42,8 @@ struct ntp_frame {
   uint32_t transmit_timestamp_f;
 };
 
-//uint8_t ip[4] = {176, 221, 43, 3};
-uint8_t ip[4] = {192, 168, 1, 1};
+uint8_t ip[4] = {192, 53, 103, 108};
+//uint8_t ip[4] = {192, 168, 1, 1};
 // {176, 221,  43,   3} 0.de.pool.ntp.org
 // {192, 168,   1, 122} ep-vostro.local
 // {176,   9,  44, 144} s7t.de
