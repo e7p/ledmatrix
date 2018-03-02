@@ -42,7 +42,8 @@ struct ntp_frame {
   uint32_t transmit_timestamp_f;
 };
 
-uint8_t ip[4] = {192, 53, 103, 108};
+uint8_t ip[4] = {192, 168, 201, 254};
+//uint8_t ip[4] = {192, 53, 103, 108};
 //uint8_t ip[4] = {192, 168, 1, 1};
 // {176, 221,  43,   3} 0.de.pool.ntp.org
 // {192, 168,   1, 122} ep-vostro.local
@@ -85,7 +86,7 @@ void request_time(void) {
 
 void my_ethernet_loop(void) {
   unsigned int rsize;
-  
+
   if(GetStatus(0) == W5100_SKT_SR_UDP) {
     rsize = ReceivedSize(0); // find out how many bytes
     if(rsize > 0) {

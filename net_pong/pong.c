@@ -12,7 +12,7 @@ uint8_t gameTick;
 void setup() {
   ledmatrix_setup();
   ethernet_setup();
-  
+
   // Initialize Timers
   // 16-bit Timer 1 at ?
   TCCR1B |= (1<<CS00); // Prescaler 1
@@ -25,7 +25,7 @@ void setup() {
 void loop() {
   if(gameTick > 64) {
     //foo
-    writeText("Connect to 192.168.1.12 555 via telnet", 8);
+    writeText("Connect to 192.168.200.12 555 via telnet", 8);
     shiftPixelData();
     gameTick-=64; // 16=normal
   }

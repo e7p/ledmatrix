@@ -13,18 +13,18 @@
 
 #define IP_1 192
 #define IP_2 168
-#define IP_3 1
+#define IP_3 200
 #define IP_4 12
 
 #define SUB_1 255
 #define SUB_2 255
-#define SUB_3 255
+#define SUB_3 254
 #define SUB_4 0
 
 #define GTW_1 192
 #define GTW_2 168
-#define GTW_3 1
-#define GTW_4 1
+#define GTW_3 201
+#define GTW_4 254
 
 // Generic status codes, not associated with the Wiznet W5100 device.
 #define  W5100_OK   0x00 /* success */
